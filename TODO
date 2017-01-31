@@ -1,0 +1,9 @@
+- Cleanup github profile
+- Create github project
+- Install and test github plugin for Trac
+	- Read about Trac authentication with Github account
+- Include git repo into Trac env
+- Test post-commit hook from Github to Trac
+- Test ticket and commit integration
+- Push base repo module, with proposed directory hierarchy (-check among other projects)
+- 
