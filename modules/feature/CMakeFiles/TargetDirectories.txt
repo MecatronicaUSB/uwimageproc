@@ -1,0 +1,3 @@
+/home/cappelletto/projects/imageproc/modules/feature/CMakeFiles/edit_cache.dir
+/home/cappelletto/projects/imageproc/modules/feature/CMakeFiles/rebuild_cache.dir
+/home/cappelletto/projects/imageproc/modules/feature/CMakeFiles/feature.dir

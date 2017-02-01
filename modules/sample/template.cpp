@@ -9,9 +9,13 @@
 /* File: 	template.cpp							                */
 /********************************************************************/
 
+//basic c and c++ libraries
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <unistd.h>
+#include <stdlib.h>
+#include <math.h>
 
 /*
 	Usage: Template -i input [-r argument -o output]
@@ -28,7 +32,7 @@ void printUsage(){
 	    cout << "\t-o\t[optional] Output file (if not specified, a file will be created with from input filename)" << endl;
         cout <<  endl << "\tExample:" << endl;
         cout << "\t$ Template -i input.dat -o output.dat -r 0" << endl;
-        cout << "\tThis will open 'input.dat' file, do some stuff and write output into 'output.dat' file" << endl;
+        cout << "\tThis will open 'input.dat' file, do some stuff and write output into 'output.dat' file" << endl << endl;
 }
 
 //********************************
@@ -46,7 +50,7 @@ int main(int argc, char* argv[]){
 	int opt = 0;
 	float rand_arg;
 
-	while ((opt = getopt(argc, argv, "i:r:o")) != -1) {
+	while ((opt = getopt(argc, argv, "i:r:o:")) != -1) {
 	switch(opt) {
 		case 'i':
 			InputFile = string (optarg);
@@ -75,7 +79,6 @@ int main(int argc, char* argv[]){
 	}
 
 	// Example of how to parse input file name
-
 	//gets the path of the input source
 	string FileName = InputFile.substr(InputFile.find_last_of("/")+1);
 	string BasePath = InputFile.substr(0,InputFile.length() - FileName.length());
@@ -88,7 +91,6 @@ int main(int argc, char* argv[]){
 	cout << "File:  " << FileName << endl;
 	cout << "Type:  " << FileType << endl;
 	cout << "Base:  " << FileBase << endl;
-
 	cout << "Output:" << OutputFile.str().c_str() << endl;
 
 //*****************************************************************************

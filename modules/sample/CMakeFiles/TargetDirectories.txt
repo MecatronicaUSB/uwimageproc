@@ -1,0 +1,3 @@
+/home/cappelletto/projects/imageproc/modules/sample/CMakeFiles/edit_cache.dir
+/home/cappelletto/projects/imageproc/modules/sample/CMakeFiles/rebuild_cache.dir
+/home/cappelletto/projects/imageproc/modules/sample/CMakeFiles/template.dir

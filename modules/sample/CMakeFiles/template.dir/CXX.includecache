@@ -1,0 +1,22 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/cappelletto/projects/imageproc/modules/sample/template.cpp
+iostream
+-
+sstream
+-
+fstream
+-
+unistd.h
+-
+stdlib.h
+-
+math.h
+-
+
