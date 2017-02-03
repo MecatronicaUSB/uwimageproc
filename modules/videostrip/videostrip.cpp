@@ -27,6 +27,9 @@
 #include "opencv2/calib3d.hpp"
 #include "opencv2/xfeatures2d.hpp"
 
+//CUDA libraries
+#include <opencv2/core/cuda.hpp>
+
 
 #define TARGET_WIDTH 	640
 #define TARGET_HEIGHT 	480
@@ -60,9 +63,8 @@ float hResizeFactor;
 void printUsage(){
 	cout << "Tool to automatically extract frames from video for 2D mosaic generation" << endl;
 	cout << "Computes frame quality based on Laplacian variance, to select best frame that overlaps with previous selected frame" << endl;
-	cout << "Overlap of consecutive selected frames is estimated through homography matrix H" << endl;  
-	cout << "Built with OpenCV " << CV_VERSION << endl;
-    cout << "\tUsage: videostrip -i input_file [-p overlap_factor -o output_file]" << endl;
+	cout << "Overlap of consecutive selected frames is estimated through homography matrix H" << endl;
+	cout << "\tUsage: videostrip -i input_file [-p overlap_factor -o output_file]" << endl;
     cout << "\t-h\tShow this help message" << endl;
     cout << "\t-i\tVideo input file" << endl;
     cout << "\t-p\t[optional] Percent of desired overlap between consecutive frames (0.0 to 1.0)" << endl;
@@ -142,6 +144,12 @@ int main(int argc, char* argv[]){
 		FileType = InputFile.substr();
 	// now we build the FileBase from input FileName
 	string FileBase = FileName.substr(0,FileName.length() - FileType.length());
+
+	int nCuda =
+
+	cout << "Built with OpenCV " << CV_VERSION << endl;
+	cout << "CUDA Devices: " << nCuda << endl;
+
 
 	cout << "Input: " << InputFile << endl;
 /*	cout << "Path:  " << BasePath << endl;
@@ -262,6 +270,8 @@ float calcOverlap(Mat img_scene, Mat img_object)
 	//-- Step 1: Detect the keypoints using SURF Detector
 	int minHessian = 400;
 
+	cout << "Starting detection..." << endl;
+
 	Ptr<SURF> detector = SURF::create(minHessian);
  
 	std::vector<KeyPoint> keypoints_object, keypoints_scene;
@@ -276,6 +286,8 @@ float calcOverlap(Mat img_scene, Mat img_object)
 
 	extractor->compute( img_object, keypoints_object, descriptors_object );
 	extractor->compute( img_scene, keypoints_scene, descriptors_scene );
+
+	cout << "Matching..." << endl;
 
 	//-- Step 3: Matching descriptor vectors using FLANN matcher
 	FlannBasedMatcher matcher;
@@ -301,8 +313,8 @@ float calcOverlap(Mat img_scene, Mat img_object)
 			{ good_matches.push_back( matches[i]); }
 	}
 
-	Mat img_matches;
-	drawMatches( img_object, keypoints_object, img_scene, keypoints_scene, good_matches, img_matches, Scalar::all(-1), Scalar::all(-1), vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
+//	Mat img_matches;
+//	drawMatches( img_object, keypoints_object, img_scene, keypoints_scene, good_matches, img_matches, Scalar::all(-1), Scalar::all(-1), vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
 
 	//-- Localize the object
 	std::vector<Point2f> obj;
@@ -314,6 +326,8 @@ float calcOverlap(Mat img_scene, Mat img_object)
 		obj.push_back( keypoints_object[ good_matches[i].queryIdx ].pt );
 		scene.push_back( keypoints_scene[ good_matches[i].trainIdx ].pt );
 	}
+
+	cout << "Estimating homography matrix..." << endl;
 
   	Mat H = findHomography( obj, scene, RANSAC );
 //	cout << H << endl;
