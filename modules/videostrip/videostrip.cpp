@@ -37,16 +37,16 @@ using namespace std;
 
 char keyboard;
 
-//1- Parse arguments from CLI
-//2- Read input file
-//3- Start extraccting frames
-//4- Select 1st key frame
-//5- Extract following frames
-//	5.1- Compute Homography matrix
-//	5.2- Estimate overlapping of current frame with previous keyframe
+//**** 1- Parse arguments from CLI
+//**** 2- Read input file
+//**** 3- Start extraccting frames
+//**** 4- Select 1st key frame
+//**** 5- Extract following frames
+//****	5.1- Compute Homography matrix
+//****	5.2- Estimate overlapping of current frame with previous keyframe
 //	5.3- If falls below treshold, pick best quality frame in the neighbourhood
-//	5.4- Asign it as next keyframe
-//	5.5 Repeat from 5
+//****	5.4- Asign it as next keyframe
+//****	5.5 Repeat from 5
 
 float calcOverlap(Mat image_scene, Mat image_object);
 
@@ -66,6 +66,7 @@ void printUsage(){
     cout << "\t-h\tShow this help message" << endl;
     cout << "\t-i\tVideo input file" << endl;
     cout << "\t-p\t[optional] Percent of desired overlap between consecutive frames (0.0 to 1.0)" << endl;
+    cout << "\t-k\t[optional] Defines window size of k-frames for keyframe tuning" << endl;
     cout << "\t-o\t[optional] Output files format, as file name base" << endl;
     cout <<  endl << "\tExample:" << endl;
     cout << "\t$ videostrip -i input.avi -o vdout -p 0.6" << endl;
@@ -87,16 +88,20 @@ int main(int argc, char* argv[]){
 
 	int opt = 0;	//getop aux var
 	float overlap = 0;	// target overlap among frame
+	int kWindow = 0;
 
 	// ********************************************************************************
 	// parses the arg string, searching for arguments
-	while ((opt = getopt(argc, argv, "i:p:o:")) != -1) {
+	while ((opt = getopt(argc, argv, "i:p:k:o:")) != -1) {
 	switch(opt) {
 		case 'i':
 			InputFile = string (optarg);
 			break;
 		case 'p':
 			overlap = atof (optarg);
+			break;
+		case 'k':
+			kWindow = atoi (optarg);
 			break;
 		case 'o':
 			OutputFile << optarg;
@@ -113,6 +118,9 @@ int main(int argc, char* argv[]){
 			} 
 			else if (optopt == 'p') {
 				cout << "Missing mandatory overlap option: -o overlap_factor" << endl;
+			} 
+			else if (optopt == 'k') {
+				cout << "Missing mandatory k-frame window option: -k k_frames" << endl;
 			} 
 			else {
 				cout << "Invalid option received" << endl;
