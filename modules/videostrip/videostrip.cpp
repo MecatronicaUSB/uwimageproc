@@ -86,7 +86,7 @@ int main(int argc, char* argv[]){
 	//read the arguments provided through the command line
 	string argument, argval;
 	string InputFile; //strings input and output file names
-	ostringstream OutputFile;
+	ostringstream OutputFile, OutputFileName;
 
 	int opt = 0;	//getop aux var
 	float overlap = 0;	// target overlap among frame
@@ -145,10 +145,10 @@ int main(int argc, char* argv[]){
 	// now we build the FileBase from input FileName
 	string FileBase = FileName.substr(0,FileName.length() - FileType.length());
 
-	int nCuda =
+	int nCuda = 0;
 
 	cout << "Built with OpenCV " << CV_VERSION << endl;
-	cout << "CUDA Devices: " << nCuda << endl;
+//	cout << "CUDA Devices: " << nCuda << endl;
 
 
 	cout << "Input: " << InputFile << endl;
@@ -196,7 +196,8 @@ int main(int argc, char* argv[]){
 	int g=0;
 	float over;
 	int out_frame = 0;
-	char out_name[10];
+	OutputFileName << OutputFile << std::setw(4) << setfill('0') << out_frame << endl;
+	couat OutputFileName
 
     while( keyboard != 'q' && keyboard != 27 ){
         //read the current frame, if fails, the quit
@@ -218,7 +219,12 @@ int main(int argc, char* argv[]){
 			Startto search best frames in i+k frames, according to "blur level" estimator (based on Laplacian variance)
 			*/
 			out_frame++;
-			sprintf (out_name, "OUT_%04d.jpg",out_frame);
+
+			sprintf (out_name, "%s_%04d.jpg", OutputFile.str().c_str(), out_frame);
+			
+			out_name << OutputFile.str();
+			cout << "Outname" << out_name << endl;
+
 			cout << "Writting: " << out_name << endl;
 			imwrite (out_name, keyframe);			
 
