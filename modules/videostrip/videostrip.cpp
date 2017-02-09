@@ -11,6 +11,7 @@
 
 //basic c and c++ libraries
 #include <iostream>
+#include <iomanip>
 #include <sstream>
 #include <fstream>
 #include <unistd.h>
@@ -98,6 +99,7 @@ int main(int argc, char* argv[]){
 	switch(opt) {
 		case 'i':
 			InputFile = string (optarg);
+			cout << "Provided InputFile: " << InputFile << endl;
 			break;
 		case 'p':
 			overlap = atof (optarg);
@@ -106,7 +108,8 @@ int main(int argc, char* argv[]){
 			kWindow = atoi (optarg);
 			break;
 		case 'o':
-			OutputFile << optarg;
+			OutputFile.str(optarg);
+			cout << "Provided OutputFile: " << OutputFile.str() << endl;
 			break;
 		case '?':
 			/* Case when user enters the command as
@@ -196,8 +199,10 @@ int main(int argc, char* argv[]){
 	int g=0;
 	float over;
 	int out_frame = 0;
-	OutputFileName << OutputFile << std::setw(4) << setfill('0') << out_frame << endl;
-	couat OutputFileName
+
+	OutputFileName.str("");
+	OutputFileName << OutputFile.str() << setfill('0') << setw(4) << out_frame << ".jpg";
+	imwrite (OutputFileName.str(), keyframe);			
 
     while( keyboard != 'q' && keyboard != 27 ){
         //read the current frame, if fails, the quit
@@ -210,9 +215,9 @@ int main(int argc, char* argv[]){
 		resize (frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);
 
 		over = calcOverlap(res_keyframe, res_frame);
-		cout << "Frame: " << g++ << "\t Overlap: " << over << endl;
+		cout << '\r' << "Frame: " << g++ << "\t Overlap: " << over << std::flush;
 		if (over<overlap){
-			cout << "********* New keyframe" << endl;
+			cout << endl << "** New keyframe **" << endl;
 			capture.read(keyframe);
 			//here we should store this new frame (thinking is good enough). 
 			/*TODO
@@ -220,13 +225,9 @@ int main(int argc, char* argv[]){
 			*/
 			out_frame++;
 
-			sprintf (out_name, "%s_%04d.jpg", OutputFile.str().c_str(), out_frame);
-			
-			out_name << OutputFile.str();
-			cout << "Outname" << out_name << endl;
-
-			cout << "Writting: " << out_name << endl;
-			imwrite (out_name, keyframe);			
+			OutputFileName.str("");
+			OutputFileName << OutputFile.str() << setfill('0') << setw(4) << out_frame << ".jpg";
+			imwrite (OutputFileName.str(), keyframe);			
 
 			resize (keyframe, res_keyframe, cv::Size(hResizeFactor * keyframe.cols, hResizeFactor * keyframe.rows), 0, 0, CV_INTER_LINEAR);
 		}	
@@ -276,7 +277,8 @@ float calcOverlap(Mat img_scene, Mat img_object)
 	//-- Step 1: Detect the keypoints using SURF Detector
 	int minHessian = 400;
 
-	cout << "Starting detection..." << endl;
+//	cout << "Starting detection...\t";
+	cout << ".";
 
 	Ptr<SURF> detector = SURF::create(minHessian);
  
@@ -293,7 +295,8 @@ float calcOverlap(Mat img_scene, Mat img_object)
 	extractor->compute( img_object, keypoints_object, descriptors_object );
 	extractor->compute( img_scene, keypoints_scene, descriptors_scene );
 
-	cout << "Matching..." << endl;
+//	cout << "Matching...\t";
+	cout << ".";
 
 	//-- Step 3: Matching descriptor vectors using FLANN matcher
 	FlannBasedMatcher matcher;
@@ -333,7 +336,8 @@ float calcOverlap(Mat img_scene, Mat img_object)
 		scene.push_back( keypoints_scene[ good_matches[i].trainIdx ].pt );
 	}
 
-	cout << "Estimating homography matrix..." << endl;
+//	cout << "Estimating homography matrix..." << endl;
+	cout << ".";
 
   	Mat H = findHomography( obj, scene, RANSAC );
 //	cout << H << endl;
