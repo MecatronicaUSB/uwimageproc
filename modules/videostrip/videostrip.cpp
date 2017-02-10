@@ -34,6 +34,7 @@
 
 #define TARGET_WIDTH 	640
 #define TARGET_HEIGHT 	480
+#define OVERLAP_MIN		0.4
 
 using namespace cv;
 using namespace cv::xfeatures2d;
@@ -216,7 +217,7 @@ int main(int argc, char* argv[]){
 
 		over = calcOverlap(res_keyframe, res_frame);
 		cout << '\r' << "Frame: " << g++ << "\t Overlap: " << over << std::flush;
-		if (over<overlap){
+		if ((over<overlap)&&(over>OVERLAP_MIN)){
 			cout << endl << "** New keyframe **" << endl;
 			capture.read(keyframe);
 			//here we should store this new frame (thinking is good enough). 
@@ -338,13 +339,24 @@ float calcOverlap(Mat img_scene, Mat img_object)
 
 //	cout << "Estimating homography matrix..." << endl;
 	cout << ".";
+//we must check if found H matrix is good enough
 
-  	Mat H = findHomography( obj, scene, RANSAC );
+	if (good_matches.size()<4)
+	{
+		cout << "[WARN] Not enough good matches!" << endl;
+		//we fail to estimate new overlap
+		return 0;
+	}
+	else
+	{
+		Mat H = findHomography( obj, scene, RANSAC );
+		float  dx = fabs(H.at<double>(0,2));
+		float  dy = fabs(H.at<double>(1,2));
+
+		float overlap = (videoWidth - dx)*(videoHeight - dy)/(videoWidth * videoHeight);
+		return overlap;
+	}
+
 //	cout << H << endl;
-	float  dx = fabs(H.at<double>(0,2));
-	float  dy = fabs(H.at<double>(1,2));
-
-	float overlap = (videoWidth - dx)*(videoHeight - dy)/(videoWidth * videoHeight);
-	return overlap;
 //	cout << "Overlap: " << overlap << endl;
 }
