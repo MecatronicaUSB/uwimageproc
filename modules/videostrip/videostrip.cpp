@@ -6,7 +6,7 @@
 /* Jose Cappelletto                                                 */
 /********************************************************************/
 /* Project: imageproc								                */
-/* File: 	template.cpp							                */
+/* File: 	videostrip.cpp							                */
 /********************************************************************/
 
 //basic c and c++ libraries
@@ -32,9 +32,10 @@
 #include <opencv2/core/cuda.hpp>
 
 
-#define TARGET_WIDTH 	640
-#define TARGET_HEIGHT 	480
-#define OVERLAP_MIN		0.4
+#define TARGET_WIDTH 	640		// resized image width
+#define TARGET_HEIGHT 	480		// resized image height
+#define OVERLAP_MIN		0.4		// minimum desired overlap among consecutive key frames
+#define DEFAULT_KWINDOW 10		// search window size for best blur-based frame, after new key frame
 
 using namespace cv;
 using namespace cv::xfeatures2d;
@@ -49,11 +50,12 @@ char keyboard;
 //**** 5- Extract following frames
 //****	5.1- Compute Homography matrix
 //****	5.2- Estimate overlapping of current frame with previous keyframe
-//	5.3- If falls below treshold, pick best quality frame in the neighbourhood
+//	5.3- If it falls below treshold, pick best quality frame in the neighbourhood
 //****	5.4- Asign it as next keyframe
 //****	5.5 Repeat from 5
 
 float calcOverlap(Mat image_scene, Mat image_object);
+float calcBlur (Mat frame);
 
 int videoWidth;
 int videoHeight;
@@ -92,7 +94,7 @@ int main(int argc, char* argv[]){
 
 	int opt = 0;	//getop aux var
 	float overlap = 0;	// target overlap among frame
-	int kWindow = 0;
+	int kWindow = DEFAULT_KWINDOW;
 
 	// ********************************************************************************
 	// parses the arg string, searching for arguments
@@ -104,9 +106,11 @@ int main(int argc, char* argv[]){
 			break;
 		case 'p':
 			overlap = atof (optarg);
+			cout << "Target overlap: " << overlap << endl;
 			break;
 		case 'k':
 			kWindow = atoi (optarg);
+			cout << "Search window: " << kWindow << endl;
 			break;
 		case 'o':
 			OutputFile.str(optarg);
@@ -141,8 +145,8 @@ int main(int argc, char* argv[]){
 	string BasePath = InputFile.substr(0,InputFile.length() - FileName.length());
 	//determines the filetype
 	string FileType;
-	int k = InputFile.find_last_of(".");
-	if (k==-1) // DOT (.) not found, so filename doesn't contain extension
+
+	if (InputFile.find_last_of(".")==-1) // DOT (.) not found, so filename doesn't contain extension
 		FileType = "";
 	else
 		FileType = InputFile.substr();
@@ -213,19 +217,31 @@ int main(int argc, char* argv[]){
             exit(EXIT_FAILURE);
         }
 
-		resize (frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);
+		float bestBlur = 0.0, currBlur;	//we start using the current frame blur as best blur value yet
 
+		resize (frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);
 		over = calcOverlap(res_keyframe, res_frame);
 		cout << '\r' << "Frame: " << g++ << "\t Overlap: " << over << std::flush;
-		if ((over<overlap)&&(over>OVERLAP_MIN)){
-			cout << endl << "** New keyframe **" << endl;
-			capture.read(keyframe);
-			//here we should store this new frame (thinking is good enough). 
-			/*TODO
-			Startto search best frames in i+k frames, according to "blur level" estimator (based on Laplacian variance)
-			*/
-			out_frame++;
 
+		if ((over<overlap)&&(over>OVERLAP_MIN)){
+			cout << endl << "** Overlap threshold, refining for Blur **" << endl;
+			/*TODO
+			Start to search best frames in i+k frames, according to "blur level" estimator (based on Laplacian variance)
+			*/
+			bestBlur = calcBlur(res_frame);
+			for (int n=0; n<kWindow; n++){
+				capture.read(frame);
+				resize (frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);
+				currBlur = calcBlur(res_frame);	//we operate over the resampled image for speed purposes
+				cout << '\r' << "Frame: " << n << "\t Blur: " << currBlur << "\t Best: " << bestBlur << std::flush;
+				if (currBlur > bestBlur){
+					bestBlur = currBlur;
+					bestframe = frame; //TODO: it must copy the content and not just the pointer
+				}
+			}
+			keyframe = bestframe; //TODO
+			cout << endl << "Best frame found" << endl;
+			out_frame++;
 			OutputFileName.str("");
 			OutputFileName << OutputFile.str() << setfill('0') << setw(4) << out_frame << ".jpg";
 			imwrite (OutputFileName.str(), keyframe);			
@@ -235,29 +251,6 @@ int main(int argc, char* argv[]){
 
         //get the input from the keyboard
         keyboard = (char)waitKey( 5 );
-/*
-		if (keyboard == ' ') bImagen = !bImagen;
-
-        Laplacian(frame,laplacian,CV_16S, 7);
-
-        Scalar mean, stdev;
-        meanStdDev(laplacian,mean,stdev);
-        double m = mean.val[0];
-        double s = stdev.val[0];
-
-        stringstream ss,tt;
-        rectangle(frame, cv::Point(10, 2), cv::Point(300,20),
-                  cv::Scalar(255,255,255), -1);
-        ss << "F: " << capture.get(CAP_PROP_POS_FRAMES) << "\tstd: " << s;
-        string frameNumberString = ss.str();
-        putText(frame, frameNumberString.c_str(), cv::Point(15, 15),
-                FONT_HERSHEY_SIMPLEX, 0.5 , cv::Scalar(0,0,0));
-        //show the current frame and the fg masks
-
-		if (bImagen)
-	        imshow("Frame", laplacian);
-		else
-	        imshow("Frame", frame);*/
     }
     //delete capture object
     capture.release();
@@ -266,6 +259,19 @@ int main(int argc, char* argv[]){
 	return 0;
 }																																																											
 
+float calcBlur (Mat frame)
+{
+		Mat laplacian;
+		//we compute the laplacian of the current frame
+        Laplacian(frame,laplacian,CV_16S, 7);
+        Scalar mean, stdev;
+		// the we compute the mean and stdev of that frame
+        meanStdDev(laplacian,mean,stdev);
+        double m = mean.val[0];
+        double s = stdev.val[0];
+		// we return the standar deviation
+		return s;	
+}
 
 float calcOverlap(Mat img_scene, Mat img_object)
 {
