@@ -9,7 +9,7 @@
 /* File: 	videostrip.cpp							                */
 /********************************************************************/
 
-//basic c and c++ libraries
+//Basic C and c++ libraries
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -32,10 +32,10 @@
 #include <opencv2/core/cuda.hpp>
 
 
-#define TARGET_WIDTH 	640		// resized image width
-#define TARGET_HEIGHT 	480		// resized image height
-#define OVERLAP_MIN		0.4		// minimum desired overlap among consecutive key frames
-#define DEFAULT_KWINDOW 10		// search window size for best blur-based frame, after new key frame
+#define TARGET_WIDTH 	640		//< Resized image width
+#define TARGET_HEIGHT 	480		//< Resized image height
+#define OVERLAP_MIN		0.4		//< Minimum desired overlap among consecutive key frames
+#define DEFAULT_KWINDOW 10		//< Search window size for best blur-based frame, after new key frame
 
 using namespace cv;
 using namespace cv::xfeatures2d;
@@ -61,8 +61,9 @@ int videoWidth;
 int videoHeight;
 float hResizeFactor;
 
-/*
-	Usage: videostrip -i input [-r argument -o output]
+/*!
+	@fn		void printUsage()
+	@brief	Provides detailed information about how to use the module through console
 */
 void printUsage(){
 	cout << "Tool to automatically extract frames from video for 2D mosaic generation" << endl;
@@ -79,7 +80,10 @@ void printUsage(){
     cout << "\tThis will open 'input.avi' file, extract frames with 60% of overlapping and export into 'vdout_XXXX.jpg' images" << endl << endl;
 }
 
-//********************************
+/*!
+	@fn		int main(int argc, char* argv[])
+	@brief	Main function
+*/
 int main(int argc, char* argv[]){
 
 	// If not enough arguments or '-h' argument is called, the print usage instructions
@@ -225,7 +229,7 @@ int main(int argc, char* argv[]){
 
 		if ((over<overlap)&&(over>OVERLAP_MIN)){
 			cout << endl << "** Overlap threshold, refining for Blur **" << endl;
-			/*TODO
+			/*!
 			Start to search best frames in i+k frames, according to "blur level" estimator (based on Laplacian variance)
 			*/
 			bestBlur = calcBlur(res_frame);
@@ -236,10 +240,10 @@ int main(int argc, char* argv[]){
 				cout << '\r' << "Frame: " << n << "\t Blur: " << currBlur << "\t Best: " << bestBlur << std::flush;
 				if (currBlur > bestBlur){
 					bestBlur = currBlur;
-					bestframe = frame; //TODO: it must copy the content and not just the pointer
+					bestframe = frame;
 				}
 			}
-			keyframe = bestframe; //TODO
+			keyframe = bestframe;
 			cout << endl << "Best frame found" << endl;
 			out_frame++;
 			OutputFileName.str("");
@@ -259,6 +263,11 @@ int main(int argc, char* argv[]){
 	return 0;
 }																																																											
 
+/*! @fn float calcBlur (Mat frame)
+    @brief Calculates the "blur" of given \a Mat frame, based on the standard deviation of the Laplacian of the input fram
+    @param frame OpenCV matrix container of the input frame
+	@retval The estimated blur for the given frame
+*/
 float calcBlur (Mat frame)
 {
 		Mat laplacian;
@@ -273,19 +282,19 @@ float calcBlur (Mat frame)
 		return s;	
 }
 
+/*! @fn float calcOverlap(Mat img_scene, Mat img_object)
+    @brief Calculates the percentage of overlapping among two frames, by estimating the Homography matrix.
+    @param img_scene	Mat OpenCV matrix container of reference frame
+    @param img_object	Mat OpenCV matrix container of target frame
+	@brief retval		The normalized overlap among two given frame
+*/
 float calcOverlap(Mat img_scene, Mat img_object)
 {
-/*  Mat img_object = imread( argv[1], IMREAD_GRAYSCALE );
-  Mat img_scene = imread( argv[2], IMREAD_GRAYSCALE );*/
-
 	if( !img_object.data || !img_scene.data )
 	{ std::cout<< " --(!) Error reading images " << std::endl; return -1; }
 
 	//-- Step 1: Detect the keypoints using SURF Detector
 	int minHessian = 400;
-
-//	cout << "Starting detection...\t";
-	cout << ".";
 
 	Ptr<SURF> detector = SURF::create(minHessian);
  
@@ -302,9 +311,6 @@ float calcOverlap(Mat img_scene, Mat img_object)
 	extractor->compute( img_object, keypoints_object, descriptors_object );
 	extractor->compute( img_scene, keypoints_scene, descriptors_scene );
 
-//	cout << "Matching...\t";
-	cout << ".";
-
 	//-- Step 3: Matching descriptor vectors using FLANN matcher
 	FlannBasedMatcher matcher;
 	std::vector< DMatch > matches;
@@ -320,7 +326,7 @@ float calcOverlap(Mat img_scene, Mat img_object)
 		if( dist > max_dist ) max_dist = dist;
 	}
 
-	//-- Draw only "good" matches (i.e. whose distance is less than 3*min_dist )
+	//-- Pick only "good" matches (i.e. whose distance is less than 2*min_dist )
 	std::vector< DMatch > good_matches;
 
 	for( int i = 0; i < descriptors_object.rows; i++ )
@@ -328,10 +334,6 @@ float calcOverlap(Mat img_scene, Mat img_object)
 		if( matches[i].distance < 2*min_dist )
 			{ good_matches.push_back( matches[i]); }
 	}
-
-//	Mat img_matches;
-//	drawMatches( img_object, keypoints_object, img_scene, keypoints_scene, good_matches, img_matches, Scalar::all(-1), Scalar::all(-1), vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
-
 	//-- Localize the object
 	std::vector<Point2f> obj;
 	std::vector<Point2f> scene;
@@ -342,11 +344,7 @@ float calcOverlap(Mat img_scene, Mat img_object)
 		obj.push_back( keypoints_object[ good_matches[i].queryIdx ].pt );
 		scene.push_back( keypoints_scene[ good_matches[i].trainIdx ].pt );
 	}
-
-//	cout << "Estimating homography matrix..." << endl;
-	cout << ".";
-//we must check if found H matrix is good enough
-
+	//we must check if found H matrix is good enough. It requires at least 4 points
 	if (good_matches.size()<4)
 	{
 		cout << "[WARN] Not enough good matches!" << endl;
@@ -362,7 +360,4 @@ float calcOverlap(Mat img_scene, Mat img_object)
 		float overlap = (videoWidth - dx)*(videoHeight - dy)/(videoWidth * videoHeight);
 		return overlap;
 	}
-
-//	cout << H << endl;
-//	cout << "Overlap: " << overlap << endl;
 }
