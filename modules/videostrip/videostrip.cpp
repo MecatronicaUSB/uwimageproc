@@ -157,12 +157,20 @@ int main(int argc, char* argv[]){
 	// now we build the FileBase from input FileName
 	string FileBase = FileName.substr(0,FileName.length() - FileType.length());
 
-	int nCuda = 0;
+	int nCuda = -1;	//<Defines number of detected CUDA devices
+
+	nCuda = cuda::getCudaEnabledDeviceCount();
 
 	cout << "Built with OpenCV " << CV_VERSION << endl;
-//	cout << "CUDA Devices: " << nCuda << endl;
 
+	cuda::DeviceInfo deviceInfo;
 
+	if (nCuda>0)
+		cout << "CUDA enabled devices detected: " << deviceInfo.name() << endl;
+	else
+		cout << "No CUDA device detected" << endl;
+
+	cout << "***************************************" << endl;
 	cout << "Input: " << InputFile << endl;
 /*	cout << "Path:  " << BasePath << endl;
 	cout << "File:  " << FileName << endl;
@@ -232,25 +240,30 @@ int main(int argc, char* argv[]){
 			/*!
 			Start to search best frames in i+k frames, according to "blur level" estimator (based on Laplacian variance)
 			*/
+			// we starts using current frame as best frame so far
 			bestBlur = calcBlur(res_frame);
+			bestframe = frame.clone();
+
 			for (int n=0; n<kWindow; n++){
-				capture.read(frame);
-				resize (frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);
+				capture.read(frame);	//we capture a new frame
+				resize (frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);	//uses a resized version
 				currBlur = calcBlur(res_frame);	//we operate over the resampled image for speed purposes
 				cout << '\r' << "Frame: " << n << "\t Blur: " << currBlur << "\t Best: " << bestBlur << std::flush;
 				if (currBlur > bestBlur){
 					bestBlur = currBlur;
-					bestframe = frame;
+					bestframe = frame.clone();
 				}
 			}
-			keyframe = bestframe;
-			cout << endl << "Best frame found" << endl;
+			keyframe = bestframe.clone();
+			cout << endl << "Best frame found: ";
 			out_frame++;
 			OutputFileName.str("");
 			OutputFileName << OutputFile.str() << setfill('0') << setw(4) << out_frame << ".jpg";
-			imwrite (OutputFileName.str(), keyframe);			
-
-			resize (keyframe, res_keyframe, cv::Size(hResizeFactor * keyframe.cols, hResizeFactor * keyframe.rows), 0, 0, CV_INTER_LINEAR);
+			cout << "Storing best frame... " ;
+			imwrite (OutputFileName.str(), bestframe);
+			cout << "Resizing new key frame" << endl;
+			resize (keyframe, res_keyframe, cv::Size(), hResizeFactor, hResizeFactor);
+//			resize (keyframe, res_keyframe, cv::Size(hResizeFactor * keyframe.cols, hResizeFactor * keyframe.rows), 0, 0, CV_INTER_LINEAR);
 		}	
 
         //get the input from the keyboard
