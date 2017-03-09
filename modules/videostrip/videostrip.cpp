@@ -27,6 +27,7 @@
 #include "opencv2/features2d.hpp"
 #include "opencv2/calib3d.hpp"
 #include "opencv2/xfeatures2d.hpp"
+//#include "opencv2/utility.hpp"
 
 //CUDA libraries
 #include <opencv2/core/cuda.hpp>
@@ -62,87 +63,55 @@ int videoHeight;
 float hResizeFactor;
 
 /*!
-	@fn		void printUsage()
-	@brief	Provides detailed information about how to use the module through console
-*/
-void printUsage(){
-	cout << "Tool to automatically extract frames from video for 2D mosaic generation" << endl;
-	cout << "Computes frame quality based on Laplacian variance, to select best frame that overlaps with previous selected frame" << endl;
-	cout << "Overlap of consecutive selected frames is estimated through homography matrix H" << endl;
-	cout << "\tUsage: videostrip -i input_file [-p overlap_factor -o output_file]" << endl;
-    cout << "\t-h\tShow this help message" << endl;
-    cout << "\t-i\tVideo input file" << endl;
-    cout << "\t-p\t[optional] Percent of desired overlap between consecutive frames (0.0 to 1.0)" << endl;
-    cout << "\t-k\t[optional] Defines window size of k-frames for keyframe tuning" << endl;
-    cout << "\t-o\t[optional] Output files format, as file name base" << endl;
-    cout <<  endl << "\tExample:" << endl;
-    cout << "\t$ videostrip -i input.avi -o vdout -p 0.6" << endl;
-    cout << "\tThis will open 'input.avi' file, extract frames with 60% of overlapping and export into 'vdout_XXXX.jpg' images" << endl << endl;
-}
-
-/*!
 	@fn		int main(int argc, char* argv[])
 	@brief	Main function
 */
 int main(int argc, char* argv[]){
 
-	// If not enough arguments or '-h' argument is called, the print usage instructions
-	if (argc<3 || (string (argv[1]) == "-h")){
-		printUsage();
-		return 0;
-	}
-	//read the arguments provided through the command line
-	string argument, argval;
-	string InputFile; //strings input and output file names
-	ostringstream OutputFile, OutputFileName;
+	String keys =
+        "{@input |<none>  | Input video path}"    // input image is the first argument (positional)
+        "{@output |<none> | Prefix for output .jpg images}" // output prefix is the second argument (positional)
+		"{p      |0.95  | Percent of desired overlap between consecutive frames (0.0 to 1.0)}"
+		"{k      |5     | Defines window size of k-frames for keyframe tuning}"
+        "{help h usage ?  |      | show this help message}";      // optional, show help optional
 
-	int opt = 0;	//getop aux var
-	float overlap = 0;	// target overlap among frame
-	int kWindow = DEFAULT_KWINDOW;
+	CommandLineParser cvParser(argc,argv,keys);
+	cvParser.about("videostrip module v0.3");	
 
-	// ********************************************************************************
-	// parses the arg string, searching for arguments
-	while ((opt = getopt(argc, argv, "i:p:k:o:")) != -1) {
-	switch(opt) {
-		case 'i':
-			InputFile = string (optarg);
-			cout << "Provided InputFile: " << InputFile << endl;
-			break;
-		case 'p':
-			overlap = atof (optarg);
-			cout << "Target overlap: " << overlap << endl;
-			break;
-		case 'k':
-			kWindow = atoi (optarg);
-			cout << "Search window: " << kWindow << endl;
-			break;
-		case 'o':
-			OutputFile.str(optarg);
-			cout << "Provided OutputFile: " << OutputFile.str() << endl;
-			break;
-		case '?':
-			/* Case when user enters the command as
-			* $ ./cmd_exe -i
-			*/
-			if (optopt == 'i') {
-				cout << "Missing mandatory input option: -i input_file" << endl;
-			}
-			else if (optopt == 'o') {
-				cout << "Missing mandatory output option: -o output_file" << endl;
-			} 
-			else if (optopt == 'p') {
-				cout << "Missing mandatory overlap option: -o overlap_factor" << endl;
-			} 
-			else if (optopt == 'k') {
-				cout << "Missing mandatory k-frame window option: -k k_frames" << endl;
-			} 
-			else {
-				cout << "Invalid option received" << endl;
-				}
-			break;
-		}
+    if (argc<3 || cvParser.has("help")) {
+		cout << "Tool to automatically extract frames from video for 2D mosaic generation" << endl;
+		cout << "Computes frame quality based on Laplacian variance, to select best frame that overlaps with previous selected frame" << endl;
+		cout << "Overlap of consecutive selected frames is estimated through homography matrix H" << endl;
+        cvParser.printMessage();
+		cout <<  endl << "\tExample:" << endl;
+		cout << "\t$ videostrip -p 0.6 input.avi vdout_" << endl;
+		cout << "\tThis will open 'input.avi' file, extract frames with 60% of overlapping and export into 'vdout_XXXX.jpg' images" << endl << endl;
+        return 0;
+    }
+
+
+	String InputFile = cvParser.get<cv::String>(0);
+	cout << "Provided InputFile: " << InputFile << endl;
+	String OutputFile = cvParser.get<cv::String>(1);
+	cout << "Provided OutputFile: " << OutputFile << endl;
+	
+
+	//string InputFile; //strings input and output file names
+	ostringstream OutputFileName;
+
+
+//	int kWindow = DEFAULT_KWINDOW;
+	int kWindow = cvParser.get<int>("k");
+	float overlap = cvParser.get<float>("p");
+
+	if (!cvParser.check()){
+		cvParser.printErrors();
+		return -1;
 	}
 
+
+	return 0;
+//************************************************************************
 	// Example of how to parse input file name
 	//gets the path of the input source
 	string FileName = InputFile.substr(InputFile.find_last_of("/")+1);
@@ -218,7 +187,7 @@ int main(int argc, char* argv[]){
 	int out_frame = 0;
 
 	OutputFileName.str("");
-	OutputFileName << OutputFile.str() << setfill('0') << setw(4) << out_frame << ".jpg";
+	OutputFileName << OutputFile << setfill('0') << setw(4) << out_frame << ".jpg";
 	imwrite (OutputFileName.str(), keyframe);			
 
     while( keyboard != 'q' && keyboard != 27 ){
@@ -258,7 +227,7 @@ int main(int argc, char* argv[]){
 			cout << endl << "Best frame found: ";
 			out_frame++;
 			OutputFileName.str("");
-			OutputFileName << OutputFile.str() << setfill('0') << setw(4) << out_frame << ".jpg";
+			OutputFileName << OutputFile << setfill('0') << setw(4) << out_frame << ".jpg";
 			cout << "Storing best frame... " ;
 			imwrite (OutputFileName.str(), bestframe);
 			cout << "Resizing new key frame" << endl;
