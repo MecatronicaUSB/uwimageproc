@@ -72,7 +72,7 @@ int main(int argc, char* argv[]){
         "{@input |<none>  | Input video path}"    // input image is the first argument (positional)
         "{@output |<none> | Prefix for output .jpg images}" // output prefix is the second argument (positional)
 		"{p      |0.95  | Percent of desired overlap between consecutive frames (0.0 to 1.0)}"
-		"{k      |5     | Defines window size of k-frames for keyframe tuning}"
+		"{k      |      | Defines window size of k-frames for keyframe tuning}"
         "{help h usage ?  |      | show this help message}";      // optional, show help optional
 
 	CommandLineParser cvParser(argc,argv,keys);
@@ -91,16 +91,10 @@ int main(int argc, char* argv[]){
 
 
 	String InputFile = cvParser.get<cv::String>(0);
-	cout << "Provided InputFile: " << InputFile << endl;
 	String OutputFile = cvParser.get<cv::String>(1);
-	cout << "Provided OutputFile: " << OutputFile << endl;
-	
-
 	//string InputFile; //strings input and output file names
 	ostringstream OutputFileName;
 
-
-//	int kWindow = DEFAULT_KWINDOW;
 	int kWindow = cvParser.get<int>("k");
 	float overlap = cvParser.get<float>("p");
 
@@ -109,8 +103,6 @@ int main(int argc, char* argv[]){
 		return -1;
 	}
 
-
-	return 0;
 //************************************************************************
 	// Example of how to parse input file name
 	//gets the path of the input source
@@ -129,9 +121,7 @@ int main(int argc, char* argv[]){
 	int nCuda = -1;	//<Defines number of detected CUDA devices
 
 	nCuda = cuda::getCudaEnabledDeviceCount();
-
 	cout << "Built with OpenCV " << CV_VERSION << endl;
-
 	cuda::DeviceInfo deviceInfo;
 
 	if (nCuda>0)
@@ -169,6 +159,9 @@ int main(int argc, char* argv[]){
 	cout << "\tSize:\t" << videoWidth << " x " << videoHeight << endl;
 	cout << "\tFrames: " << videoFrames << " @ " << videoFPS << endl;
 	cout << "\thResize: " << hResizeFactor << endl;
+
+	cout << "Target overlap: " << overlap << endl;
+	cout << "K-Window size: " << kWindow << endl;
 
 	// ********************************************************************************
 	// Next, we start reading frames from video
