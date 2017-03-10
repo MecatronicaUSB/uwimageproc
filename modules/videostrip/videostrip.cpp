@@ -27,11 +27,12 @@
 #include "opencv2/features2d.hpp"
 #include "opencv2/calib3d.hpp"
 #include "opencv2/xfeatures2d.hpp"
-//#include "opencv2/utility.hpp"
+#include <opencv2/opencv_modules.hpp>
 
 //CUDA libraries
+#include <opencv2/cudafilters.hpp>
+#include <opencv2/cudafeatures2d.hpp>
 #include <opencv2/core/cuda.hpp>
-
 
 #define TARGET_WIDTH 	640		//< Resized image width
 #define TARGET_HEIGHT 	480		//< Resized image height
@@ -39,10 +40,14 @@
 #define DEFAULT_KWINDOW 10		//< Search window size for best blur-based frame, after new key frame
 
 using namespace cv;
+using namespace cv::cuda;
 using namespace cv::xfeatures2d;
 using namespace std;
 
 char keyboard;
+
+// Timing monitor
+double t; 
 
 //**** 1- Parse arguments from CLI
 //**** 2- Read input file
@@ -67,7 +72,8 @@ float hResizeFactor;
 	@brief	Main function
 */
 int main(int argc, char* argv[]){
-
+//*********************************************************************************
+/* PARSER */
 	String keys =
         "{@input |<none>  | Input video path}"    // input image is the first argument (positional)
         "{@output |<none> | Prefix for output .jpg images}" // output prefix is the second argument (positional)
@@ -104,20 +110,23 @@ int main(int argc, char* argv[]){
 	}
 
 //************************************************************************
-	// Example of how to parse input file name
+/* FILENAME */
 	//gets the path of the input source
 	string FileName = InputFile.substr(InputFile.find_last_of("/")+1);
 	string BasePath = InputFile.substr(0,InputFile.length() - FileName.length());
+
 	//determines the filetype
 	string FileType;
-
 	if (InputFile.find_last_of(".")==-1) // DOT (.) not found, so filename doesn't contain extension
 		FileType = "";
 	else
 		FileType = InputFile.substr();
+
 	// now we build the FileBase from input FileName
 	string FileBase = FileName.substr(0,FileName.length() - FileType.length());
 
+//**************************************************************************
+/* CUDA */
 	int nCuda = -1;	//<Defines number of detected CUDA devices
 
 	nCuda = cuda::getCudaEnabledDeviceCount();
@@ -129,22 +138,20 @@ int main(int argc, char* argv[]){
 	else
 		cout << "No CUDA device detected" << endl;
 
+	cuda::setDevice(0);
 	cout << "***************************************" << endl;
 	cout << "Input: " << InputFile << endl;
-/*	cout << "Path:  " << BasePath << endl;
-	cout << "File:  " << FileName << endl;
-	cout << "Type:  " << FileType << endl;
-	cout << "Base:  " << FileBase << endl;
-	cout << "Output:" << OutputFile.str().c_str() << endl;//*/
+
+//**************************************************************************
+/* VIDEO INPUT */
 
     //create the capture object
     VideoCapture capture(InputFile);
     if(!capture.isOpened()){
         //error in opening the video input
-//        cerr << "Unable to open video file: " << InputFile << endl;
+        cerr << "Unable to open video file: " << InputFile << endl;
         exit(EXIT_FAILURE);
     }
-	// ********************************************************************************
 	//now we retrieve and print info about input video
 	videoWidth = capture.get(CV_CAP_PROP_FRAME_WIDTH);
 	videoHeight = capture.get(CV_CAP_PROP_FRAME_HEIGHT);
@@ -163,7 +170,8 @@ int main(int argc, char* argv[]){
 	cout << "Target overlap: " << overlap << endl;
 	cout << "K-Window size: " << kWindow << endl;
 
-	// ********************************************************************************
+	//**************************************************************************
+	/* PROCESS START */
 	// Next, we start reading frames from video
 	Mat frame, laplacian, keyframe, bestframe;
 	Mat res_keyframe, res_frame;
@@ -183,7 +191,9 @@ int main(int argc, char* argv[]){
 	OutputFileName << OutputFile << setfill('0') << setw(4) << out_frame << ".jpg";
 	imwrite (OutputFileName.str(), keyframe);			
 
+
     while( keyboard != 'q' && keyboard != 27 ){
+		t = (double)getTickCount();
         //read the current frame, if fails, the quit
         if(!capture.read(frame)) {
             cerr << "Unable to read next frame." << endl;
@@ -202,7 +212,7 @@ int main(int argc, char* argv[]){
 			/*!
 			Start to search best frames in i+k frames, according to "blur level" estimator (based on Laplacian variance)
 			*/
-			// we starts using current frame as best frame so far
+			// we start using current frame as best frame so far
 			bestBlur = calcBlur(res_frame);
 			bestframe = frame.clone();
 
@@ -210,12 +220,14 @@ int main(int argc, char* argv[]){
 				capture.read(frame);	//we capture a new frame
 				resize (frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);	//uses a resized version
 				currBlur = calcBlur(res_frame);	//we operate over the resampled image for speed purposes
+
 				cout << '\r' << "Frame: " << n << "\t Blur: " << currBlur << "\t Best: " << bestBlur << std::flush;
-				if (currBlur > bestBlur){
+				if (currBlur > bestBlur){	//if current blur is better, replaces best frame
 					bestBlur = currBlur;
 					bestframe = frame.clone();
 				}
 			}
+
 			keyframe = bestframe.clone();
 			cout << endl << "Best frame found: ";
 			out_frame++;
@@ -223,8 +235,20 @@ int main(int argc, char* argv[]){
 			OutputFileName << OutputFile << setfill('0') << setw(4) << out_frame << ".jpg";
 			cout << "Storing best frame... " ;
 			imwrite (OutputFileName.str(), bestframe);
+
+			t = 1000*((double)getTickCount() - t)/getTickFrequency();
+			cout << "BestBlur: " << t << " ms" << endl;
+			cout << "*.*.*.*.*.*.*.**.*.*" << endl;
+			t = (double)getTickCount();
+
 			cout << "Resizing new key frame" << endl;
 			resize (keyframe, res_keyframe, cv::Size(), hResizeFactor, hResizeFactor);
+
+			t = 1000*((double)getTickCount() - t)/getTickFrequency();
+			cout << "Resize: " << t << " ms" << endl;
+			cout << "*.*.*.*.*.*.*.**.*.*" << endl;
+			t = (double)getTickCount();
+
 //			resize (keyframe, res_keyframe, cv::Size(hResizeFactor * keyframe.cols, hResizeFactor * keyframe.rows), 0, 0, CV_INTER_LINEAR);
 		}	
 
@@ -245,9 +269,20 @@ int main(int argc, char* argv[]){
 */
 float calcBlur (Mat frame)
 {
-		Mat laplacian;
+		Mat grey, laplacian;
+		cuda::GpuMat gpuFrame, gpuLaplacian;
+		cvtColor(frame,grey,COLOR_BGR2GRAY);
+
+		//upload into GPU memory
+		gpuFrame.upload(grey);
+		//perform Laplacian filter
+		Ptr<cuda::Filter> filter = cuda::createLaplacianFilter(gpuFrame.type(), gpuLaplacian.type(), 1, 1);
+		filter->apply(gpuFrame, gpuLaplacian);	//**/
+		//download from GPU memory
+		gpuLaplacian.download(laplacian);
+
 		//we compute the laplacian of the current frame
-        Laplacian(frame,laplacian,CV_16S, 7);
+//        Laplacian(frame,laplacian,CV_16S, 7);
         Scalar mean, stdev;
 		// the we compute the mean and stdev of that frame
         meanStdDev(laplacian,mean,stdev);
@@ -266,14 +301,34 @@ float calcBlur (Mat frame)
 float calcOverlap(Mat img_scene, Mat img_object)
 {
 	if( !img_object.data || !img_scene.data )
-	{ std::cout<< " --(!) Error reading images " << std::endl; return -1; }
+	{ cout<< " --(!) Error reading images " << std::endl; return -1; }
 
 	//-- Step 1: Detect the keypoints using SURF Detector
 	int minHessian = 400;
 
-	Ptr<SURF> detector = SURF::create(minHessian);
- 
-	std::vector<KeyPoint> keypoints_object, keypoints_scene;
+	cuda::GpuMat gpu_img_object, gpu_img_scene;
+	cuda::GpuMat gpu_keypoints_object, gpu_keypoints_scene;
+	cuda::GpuMat gpu_descriptors_object, gpu_descriptors_scene;
+	vector<KeyPoint> keypoints_object, keypoints_scene;
+
+	//-- Steps 1 + 2, detect the keypoints and compute descriptors, both in one method
+	cv::cuda::SURF_CUDA surf(minHessian);
+	surf (gpu_img_object, cuda::GpuMat(), gpu_keypoints_object, gpu_descriptors_object);
+	surf (gpu_img_scene, cuda::GpuMat(), gpu_keypoints_scene, gpu_descriptors_scene);
+
+	//-- Step 3: Matching descriptor vectors using BruteForceMatcher
+/*	Ptr< cuda::DescriptorMatcher > matcher = cuda::DescriptorMatcher::createBFMatcher();
+	vector< vector< DMatch> > matches;
+	matcher->knnMatch(gpu_descriptors_object, gpu_descriptors_scene, matches, 2);
+*/
+	//vector< float> descriptors_scene, descriptors_object;
+/*	surf.downloadKeypoints(gpu_keypoints_scene, keypoints_scene);
+	surf.downloadKeypoints(gpu_keypoints_object, keypoints_object);
+*/
+	//*****************************************************//
+	//CPU based implementation
+	Ptr<SURF> detector;
+	detector = SURF::create(minHessian);
 
 	detector->detect( img_object, keypoints_object );
 	detector->detect( img_scene, keypoints_scene );
@@ -302,7 +357,7 @@ float calcOverlap(Mat img_scene, Mat img_object)
 	}
 
 	//-- Pick only "good" matches (i.e. whose distance is less than 2*min_dist )
-	std::vector< DMatch > good_matches;
+	vector< DMatch > good_matches;
 
 	for( int i = 0; i < descriptors_object.rows; i++ )
 	{ 	
@@ -310,8 +365,8 @@ float calcOverlap(Mat img_scene, Mat img_object)
 			{ good_matches.push_back( matches[i]); }
 	}
 	//-- Localize the object
-	std::vector<Point2f> obj;
-	std::vector<Point2f> scene;
+	vector<Point2f> obj;
+	vector<Point2f> scene;
 
 	for( int i = 0; i < good_matches.size(); i++ )
 	{
@@ -319,6 +374,7 @@ float calcOverlap(Mat img_scene, Mat img_object)
 		obj.push_back( keypoints_object[ good_matches[i].queryIdx ].pt );
 		scene.push_back( keypoints_scene[ good_matches[i].trainIdx ].pt );
 	}
+
 	//we must check if found H matrix is good enough. It requires at least 4 points
 	if (good_matches.size()<4)
 	{
@@ -333,6 +389,13 @@ float calcOverlap(Mat img_scene, Mat img_object)
 		float  dy = fabs(H.at<double>(1,2));
 
 		float overlap = (videoWidth - dx)*(videoHeight - dy)/(videoWidth * videoHeight);
+
+			t = 1000*((double)getTickCount() - t)/getTickFrequency();
+			cout << "Overlap: " << t << " ms" << endl;
+			cout << "*.*.*.*.*.*.*.**.*.*" << endl;
+			t = (double)getTickCount();
+
+
 		return overlap;
 	}
 }
