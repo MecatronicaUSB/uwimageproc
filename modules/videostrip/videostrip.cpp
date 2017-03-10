@@ -208,7 +208,7 @@ int main(int argc, char* argv[]){
 		cout << '\r' << "Frame: " << g++ << "\t Overlap: " << over << std::flush;
 
 		if ((over<overlap)&&(over>OVERLAP_MIN)){
-			cout << endl << "** Overlap threshold, refining for Blur **" << endl;
+			cout << endl << ">> Overlap threshold, refining for Blur" << endl;
 			/*!
 			Start to search best frames in i+k frames, according to "blur level" estimator (based on Laplacian variance)
 			*/
@@ -221,7 +221,7 @@ int main(int argc, char* argv[]){
 				resize (frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);	//uses a resized version
 				currBlur = calcBlur(res_frame);	//we operate over the resampled image for speed purposes
 
-				cout << '\r' << "Frame: " << n << "\t Blur: " << currBlur << "\t Best: " << bestBlur << std::flush;
+				cout << '\r' << " >>>> Frame: " << n << "\t Blur: " << currBlur << "\t Best: " << bestBlur << std::flush;
 				if (currBlur > bestBlur){	//if current blur is better, replaces best frame
 					bestBlur = currBlur;
 					bestframe = frame.clone();
@@ -229,15 +229,15 @@ int main(int argc, char* argv[]){
 			}
 
 			keyframe = bestframe.clone();
-			cout << endl << "Best frame found: ";
+			cout << " >> best frame found";
 			out_frame++;
 			OutputFileName.str("");
 			OutputFileName << OutputFile << setfill('0') << setw(4) << out_frame << ".jpg";
-			cout << "Storing best frame... " ;
+			cout << "  >> storing best frame... " ;
 			imwrite (OutputFileName.str(), bestframe);
 
 			t = 1000*((double)getTickCount() - t)/getTickFrequency();
-			cout << "BestBlur: " << t << " ms" << endl;
+			cout << endl << "BestBlur: " << t << " ms" << endl;
 			cout << "*.*.*.*.*.*.*.**.*.*" << endl;
 			t = (double)getTickCount();
 
@@ -245,7 +245,7 @@ int main(int argc, char* argv[]){
 			resize (keyframe, res_keyframe, cv::Size(), hResizeFactor, hResizeFactor);
 
 			t = 1000*((double)getTickCount() - t)/getTickFrequency();
-			cout << "Resize: " << t << " ms" << endl;
+			cout << endl << "Resize: " << t << " ms" << endl;
 			cout << "*.*.*.*.*.*.*.**.*.*" << endl;
 			t = (double)getTickCount();
 
@@ -269,6 +269,7 @@ int main(int argc, char* argv[]){
 */
 float calcBlur (Mat frame)
 {
+		// Avg time: 0.7 ms GPU/ 23ms CPU
 		Mat grey, laplacian;
 		cuda::GpuMat gpuFrame, gpuLaplacian;
 		cvtColor(frame,grey,COLOR_BGR2GRAY);
@@ -312,9 +313,9 @@ float calcOverlap(Mat img_scene, Mat img_object)
 	vector<KeyPoint> keypoints_object, keypoints_scene;
 
 	//-- Steps 1 + 2, detect the keypoints and compute descriptors, both in one method
-	cv::cuda::SURF_CUDA surf(minHessian);
+/*	cv::cuda::SURF_CUDA surf(minHessian);
 	surf (gpu_img_object, cuda::GpuMat(), gpu_keypoints_object, gpu_descriptors_object);
-	surf (gpu_img_scene, cuda::GpuMat(), gpu_keypoints_scene, gpu_descriptors_scene);
+	surf (gpu_img_scene, cuda::GpuMat(), gpu_keypoints_scene, gpu_descriptors_scene);//*/
 
 	//-- Step 3: Matching descriptor vectors using BruteForceMatcher
 /*	Ptr< cuda::DescriptorMatcher > matcher = cuda::DescriptorMatcher::createBFMatcher();
@@ -327,6 +328,7 @@ float calcOverlap(Mat img_scene, Mat img_object)
 */
 	//*****************************************************//
 	//CPU based implementation
+	// TODO: CUDA based version
 	Ptr<SURF> detector;
 	detector = SURF::create(minHessian);
 
@@ -341,42 +343,43 @@ float calcOverlap(Mat img_scene, Mat img_object)
 	extractor->compute( img_object, keypoints_object, descriptors_object );
 	extractor->compute( img_scene, keypoints_scene, descriptors_scene );
 
-	//-- Step 3: Matching descriptor vectors using FLANN matcher
-	FlannBasedMatcher matcher;
-	std::vector< DMatch > matches;
-	matcher.match( descriptors_object, descriptors_scene, matches );
-
+			t = 1000*((double)getTickCount() - t)/getTickFrequency();
+			cout << endl << "SURF@CPU: " << t << " ms" << endl;
+			cout << "*.*.*.*.*.*.*.**.*.*" << endl;
+			t = (double)getTickCount();
+	
+	//***************************************************************//
+	//-- Step 3: Matching descriptor vectors using GPU BruteForce matcher (instead CPU FLANN)
+	// Avg time: 2.5 ms GPU / 21 ms CPU
 	double max_dist = 0; double min_dist = 100;
+	gpu_descriptors_object.upload(descriptors_object);
+	gpu_descriptors_scene.upload(descriptors_scene);
 
-	//-- Quick calculation of max and min distances between keypoints
-	for( int i = 0; i < descriptors_object.rows; i++ )
-	{ 
-		double dist = matches[i].distance;
-		if( dist < min_dist ) min_dist = dist;
-		if( dist > max_dist ) max_dist = dist;
-	}
+	Ptr< cuda::DescriptorMatcher > matcher_gpu = cuda::DescriptorMatcher::createBFMatcher();
+	vector< vector< DMatch> > matches_gpu;
+	matcher_gpu->knnMatch(gpu_descriptors_object, gpu_descriptors_scene, matches_gpu, 2);
 
-	//-- Pick only "good" matches (i.e. whose distance is less than 2*min_dist )
-	vector< DMatch > good_matches;
-
-	for( int i = 0; i < descriptors_object.rows; i++ )
-	{ 	
-		if( matches[i].distance < 2*min_dist )
-			{ good_matches.push_back( matches[i]); }
-	}
-	//-- Localize the object
-	vector<Point2f> obj;
-	vector<Point2f> scene;
-
-	for( int i = 0; i < good_matches.size(); i++ )
+	//-- Step 4: Select only good matches
+	std::vector< DMatch > good_matches_gpu;
+	for (int k = 0; k < std::min(keypoints_object.size()-1, matches_gpu.size()); k++)
 	{
-		//-- Get the keypoints from the good matches
-		obj.push_back( keypoints_object[ good_matches[i].queryIdx ].pt );
-		scene.push_back( keypoints_scene[ good_matches[i].trainIdx ].pt );
+		if ( (matches_gpu[k][0].distance < 0.6*(matches_gpu[k][1].distance)) &&
+				((int)matches_gpu[k].size() <= 2 && (int)matches_gpu[k].size()>0) )
+		{
+			// take the first result only if its distance is smaller than 0.6*second_best_dist
+			// that means this descriptor is ignored if the second distance is bigger or of similar
+			good_matches_gpu.push_back(matches_gpu[k][0]);
+		}
 	}
+ 
+			t = 1000*((double)getTickCount() - t)/getTickFrequency();
+			cout << endl << "BFMatcher GPU: " << t << " ms" << endl;
+			cout << "*.*.*.*.*.*.*.**.*.*" << endl;
+			t = (double)getTickCount();
 
+	//***************************************************************//
 	//we must check if found H matrix is good enough. It requires at least 4 points
-	if (good_matches.size()<4)
+	if (good_matches_gpu.size()<4)
 	{
 		cout << "[WARN] Not enough good matches!" << endl;
 		//we fail to estimate new overlap
@@ -384,18 +387,29 @@ float calcOverlap(Mat img_scene, Mat img_object)
 	}
 	else
 	{
+		//-- Localize the object
+		vector<Point2f> obj;
+		vector<Point2f> scene;
+
+		for( int i = 0; i < good_matches_gpu.size(); i++ )
+		{
+			//-- Get the keypoints from the good matches
+			obj.push_back( keypoints_object[ good_matches_gpu[i].queryIdx ].pt );
+			scene.push_back( keypoints_scene[ good_matches_gpu[i].trainIdx ].pt );
+		}
+
+		// TODO: As OpenCV 3.2, there is no CUDA based implementation for findHomography. 
+		// Check http://nghiaho.com/?page_id=611 for an external solution
+		// Avg time: 0.7 ms CPU
 		Mat H = findHomography( obj, scene, RANSAC );
 		float  dx = fabs(H.at<double>(0,2));
 		float  dy = fabs(H.at<double>(1,2));
 
 		float overlap = (videoWidth - dx)*(videoHeight - dy)/(videoWidth * videoHeight);
-
 			t = 1000*((double)getTickCount() - t)/getTickFrequency();
-			cout << "Overlap: " << t << " ms" << endl;
+			cout << "Homography: " << t << " ms" << endl;
 			cout << "*.*.*.*.*.*.*.**.*.*" << endl;
 			t = (double)getTickCount();
-
-
 		return overlap;
 	}
 }
