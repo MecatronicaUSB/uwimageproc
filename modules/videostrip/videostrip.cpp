@@ -37,12 +37,14 @@
 #define OVERLAP_MIN        0.4        //< Minimum desired overlap among consecutive key frames
 #define DEFAULT_KWINDOW 10        //< Search window size for best blur-based frame, after new key frame
 
+//#define _VERBOSE_ON_
+
 using namespace cv;
 using namespace cv::cuda;
 using namespace cv::xfeatures2d;
 using namespace std;
 
-char keyboard=0;
+char keyboard = 0;
 
 // Timing monitor
 double t;
@@ -59,6 +61,7 @@ double t;
 //****	5.5 Repeat from 5
 
 float calcOverlap(Mat image_scene, Mat image_object);
+
 float calcBlur(Mat frame);
 
 int videoWidth, videoHeight;
@@ -103,9 +106,9 @@ int main(int argc, char *argv[]) {
     int kWindow = cvParser.get<int>("k");
     float overlap = cvParser.get<float>("p");
 
-    if (!cvParser.check()) {
+    if (! cvParser.check()) {
         cvParser.printErrors();
-        return -1;
+        return - 1;
     }
 
     //************************************************************************
@@ -116,7 +119,7 @@ int main(int argc, char *argv[]) {
 
     //determines the filetype
     string FileType;
-    if (InputFile.find_last_of(".") == -1) // DOT (.) not found, so filename doesn't contain extension
+    if (InputFile.find_last_of(".") == - 1) // DOT (.) not found, so filename doesn't contain extension
         FileType = "";
     else
         FileType = InputFile.substr();
@@ -126,7 +129,7 @@ int main(int argc, char *argv[]) {
 
     //**************************************************************************
     /* CUDA */
-    int nCuda = -1;    //<Defines number of detected CUDA devices
+    int nCuda = - 1;    //<Defines number of detected CUDA devices
 
     nCuda = cuda::getCudaEnabledDeviceCount();
     cout << "Built with OpenCV " << CV_VERSION << endl;
@@ -134,8 +137,10 @@ int main(int argc, char *argv[]) {
 
     if (nCuda > 0)
         cout << "CUDA enabled devices detected: " << deviceInfo.name() << endl;
-    else
+    else {
         cout << "No CUDA device detected" << endl;
+        cout << "Exiting... use non-GPU version instead" << endl;
+    }
 
     cuda::setDevice(0);
     cout << "***************************************" << endl;
@@ -144,9 +149,9 @@ int main(int argc, char *argv[]) {
     //**************************************************************************
     /* VIDEO INPUT */
 
-    //create the capture object
+    //<create the capture object
     VideoCapture capture(InputFile);
-    if (!capture.isOpened()) {
+    if (! capture.isOpened()) {
         //error in opening the video input
         cerr << "Unable to open video file: " << InputFile << endl;
         exit(EXIT_FAILURE);
@@ -158,16 +163,15 @@ int main(int argc, char *argv[]) {
     // we compute the resize factor for the horizontal dimension. As we preserve the aspect ratio, is the same for the veritcal resizing
     hResizeFactor = (float) TARGET_WIDTH / videoWidth;
 
-    float   videoFPS = capture.get(CV_CAP_PROP_FPS);
-    int     videoFrames = capture.get(CV_CAP_PROP_FRAME_COUNT);
+    float videoFPS = capture.get(CV_CAP_PROP_FPS);
+    int videoFrames = capture.get(CV_CAP_PROP_FRAME_COUNT);
 
-    cout << "Metadata:" << endl;
+    cout << "Video metadata:" << endl;
     cout << "\tSize:\t" << videoWidth << " x " << videoHeight << endl;
-    cout << "\tFrames: " << videoFrames << " @ " << videoFPS << endl;
-    cout << "\thResize: " << hResizeFactor << endl;
-
-    cout << "Target overlap: " << overlap << endl;
-    cout << "K-Window size: " << kWindow << endl;
+    cout << "\tFrames:\t" << videoFrames << " @ " << videoFPS << endl;
+    cout << "\thResize:\t" << hResizeFactor << endl;
+    cout << "Target overlap:\t" << overlap << endl;
+    cout << "K-Window size:\t" << kWindow << endl;
 
     //**************************************************************************
     /* PROCESS START */
@@ -176,16 +180,14 @@ int main(int argc, char *argv[]) {
     Mat keyframe, bestframe, res_keyframe, res_frame;
 
     bool bImagen = false;
+    float over;
+    int out_frame = 0, read_frame = 0;
 
     // we use the first frame as keyframe (so far, further implementations should include cli arg to pick one by user)
-    capture.read(keyframe);
+    capture.read(keyframe);     read_frame ++;
     // resizing for speed purposes
     resize(keyframe, res_keyframe, cv::Size(hResizeFactor * keyframe.cols, hResizeFactor * keyframe.rows), 0, 0,
            CV_INTER_LINEAR);
-
-    //int g = 0;
-    float over;
-    int out_frame = 0, g = 0;
 
     OutputFileName.str("");
     OutputFileName << OutputFile << setfill('0') << setw(4) << out_frame << ".jpg";
@@ -194,20 +196,20 @@ int main(int argc, char *argv[]) {
     while (keyboard != 'q' && keyboard != 27) {
         t = (double) getTickCount();
         //read the current frame, if fails, the quit
-        if (!capture.read(frame)) {
+        if (! capture.read(frame)) {
             cerr << "Unable to read next frame." << endl;
             cerr << "Exiting..." << endl;
             exit(EXIT_FAILURE);
         }
-//		cvtColor(frame,frame,COLOR_BGR2GRAY);
-        float bestBlur = 0.0, currBlur;    //we start using the current frame blur as best blur value yet
+        read_frame ++;
 
+        float bestBlur = 0.0, currBlur;    //we start using the current frame blur as best blur value yet
         resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);
         over = calcOverlap(res_keyframe, res_frame);
-        cout << '\r' << "Frame: " << g++ << "\tOverlap: " << over << std::flush;
+        cout << '\r' << "Frame: " << read_frame << " >> " << out_frame << "\tOverlap: " << over << std::flush;
 
         if ((over < overlap) && (over > OVERLAP_MIN)) {
-            cout << "\t>> Overlap threshold, refining for Blur" << endl;
+            cout << "\t>> refining for Blur" << endl;
             /*!
             Start to search best frames in i+k frames, according to "blur level" estimator (based on Laplacian variance)
             We start using current frame as best frame so far
@@ -215,30 +217,33 @@ int main(int argc, char *argv[]) {
             bestBlur = calcBlur(res_frame);
             bestframe = frame.clone();
             //for each frame inside the k-consecutive frame window, we refine the search
-            for (int n = 0; n < kWindow; n++) {
+            for (int n = 0; n < kWindow; n ++) {
                 capture.read(frame);    //we capture a new frame
+                read_frame ++;
                 resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);    //uses a resized version
                 currBlur = calcBlur(res_frame);    //we operate over the resampled image for speed purposes
 
-                cout << '\r' << ">> Frame: " << n << "\tBlur: " << currBlur << "\tBest: " << bestBlur << std::flush;
+                cout << '\r' << ">> cFrame: " << n << "\tBlur: " << currBlur << "\tBest: " << bestBlur << std::flush;
                 if (currBlur > bestBlur) {    //if current blur is better, replaces best frame
                     bestBlur = currBlur;
-                    bestframe = frame.clone();
+                    bestframe = frame.clone();  //best fram is a copy of frame
                 }
             }
-
+            //< finally the new keyframe is the best frame from las iteration
             keyframe = bestframe.clone();
             cout << " >> best frame found";
-            out_frame++;
+            out_frame ++;
+
             OutputFileName.str("");
             OutputFileName << OutputFile << setfill('0') << setw(4) << out_frame << ".jpg";
             cout << "  >> storing best frame... ";
             imwrite(OutputFileName.str(), bestframe);
 
+#ifdef _VERBOSE_ON_
             t = 1000 * ((double) getTickCount() - t) / getTickFrequency();
-//            cout << endl << "BestBlur: " << t << " ms" << endl;
+            cout << endl << "BestBlur: " << t << " ms" << endl;
             t = (double) getTickCount();
-
+#endif
             resize(keyframe, res_keyframe, cv::Size(), hResizeFactor, hResizeFactor);
         }
 
@@ -289,9 +294,9 @@ float calcBlur(Mat frame) {
 	@brief retval		The normalized overlap among two given frame
 */
 float calcOverlap(Mat img_scene, Mat img_object) {
-    if (!img_object.data || !img_scene.data) {
+    if (! img_object.data || ! img_scene.data) {
         cout << " --(!) Error reading images " << std::endl;
-        return -1;
+        return - 1;
     }
 
     //-- Step 1: Detect the keypoints using SURF Detector
@@ -317,9 +322,11 @@ float calcOverlap(Mat img_scene, Mat img_object) {
     surf.downloadKeypoints(gpu_keypoints_scene, keypoints_scene);
     surf.downloadKeypoints(gpu_keypoints_object, keypoints_object);
 
+#ifdef _VERBOSE_ON_
     t = 1000 * ((double) getTickCount() - t) / getTickFrequency();
-    cout << endl << "SURF@GPU: " << t << " ms " ;
+    cout << endl << "SURF@GPU: " << t << " ms ";
     t = (double) getTickCount();
+#endif
 
     //***************************************************************//
     //-- Step 3: Matching descriptor vectors using GPU BruteForce matcher (instead CPU FLANN)
@@ -333,7 +340,7 @@ float calcOverlap(Mat img_scene, Mat img_object) {
 
     //-- Step 4: Select only good matches
     std::vector<DMatch> good_matches_gpu;
-    for (int k = 0; k < std::min(keypoints_object.size() - 1, matches_gpu.size()); k++) {
+    for (int k = 0; k < std::min(keypoints_object.size() - 1, matches_gpu.size()); k ++) {
         if ((matches_gpu[k][0].distance < 0.6 * (matches_gpu[k][1].distance)) &&
             ((int) matches_gpu[k].size() <= 2 && (int) matches_gpu[k].size() > 0)) {
             // take the first result only if its distance is smaller than 0.6*second_best_dist
@@ -342,10 +349,11 @@ float calcOverlap(Mat img_scene, Mat img_object) {
         }
     }
 
+#ifdef _VERBOSE_ON_
     t = 1000 * ((double) getTickCount() - t) / getTickFrequency();
     cout << "\t | BFMatcher GPU: " << t << " ms ";
     t = (double) getTickCount();
-
+#endif
     //***************************************************************//
     //we must check if found H matrix is good enough. It requires at least 4 points
     if (good_matches_gpu.size() < 4) {
@@ -355,10 +363,9 @@ float calcOverlap(Mat img_scene, Mat img_object) {
     }
     else {
         //-- Localize the object
-        vector<Point2f> obj;
-        vector<Point2f> scene;
+        vector<Point2f> obj, scene;
 
-        for (int i = 0; i < good_matches_gpu.size(); i++) {
+        for (int i = 0; i < good_matches_gpu.size(); i ++) {
             //-- Get the keypoints from the good matches
             obj.push_back(keypoints_object[good_matches_gpu[i].queryIdx].pt);
             scene.push_back(keypoints_scene[good_matches_gpu[i].trainIdx].pt);
@@ -370,11 +377,13 @@ float calcOverlap(Mat img_scene, Mat img_object) {
         Mat H = findHomography(obj, scene, RANSAC);
         float dx = fabs(H.at<double>(0, 2));
         float dy = fabs(H.at<double>(1, 2));
-
         float overlap = (videoWidth - dx) * (videoHeight - dy) / (videoWidth * videoHeight);
+
+#ifdef _VERBOSE_ON_
         t = 1000 * ((double) getTickCount() - t) / getTickFrequency();
         cout << "\t | Homography: " << t << " ms" << endl;
         t = (double) getTickCount();
+#endif
         return overlap;
     }
 }
