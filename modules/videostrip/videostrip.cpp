@@ -206,10 +206,10 @@ int main(int argc, char *argv[]) {
         float bestBlur = 0.0, currBlur;    //we start using the current frame blur as best blur value yet
         resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);
         over = calcOverlap(res_keyframe, res_frame);
-        cout << '\r' << "Frame: " << read_frame << " >> " << out_frame << "\tOverlap: " << over << std::flush;
+        cout << '\r' << "Frame: " << read_frame << " [" << out_frame << "]\tOverlap: " << over << std::flush;
 
         if ((over < overlap) && (over > OVERLAP_MIN)) {
-            cout << "\t>> refining for Blur" << endl;
+            cout << "\t> Refining for Blur" << endl;
             /*!
             Start to search best frames in i+k frames, according to "blur level" estimator (based on Laplacian variance)
             We start using current frame as best frame so far
@@ -218,12 +218,17 @@ int main(int argc, char *argv[]) {
             bestframe = frame.clone();
             //for each frame inside the k-consecutive frame window, we refine the search
             for (int n = 0; n < kWindow; n ++) {
-                capture.read(frame);    //we capture a new frame
+
+				if (! capture.read(frame)) {
+				    cerr << endl << "Unable to read next frame." << endl;
+				    cerr << "Ending..." << endl;
+				    exit(EXIT_FAILURE);
+				}
                 read_frame ++;
                 resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);    //uses a resized version
                 currBlur = calcBlur(res_frame);    //we operate over the resampled image for speed purposes
 
-                cout << '\r' << ">> cFrame: " << n << "\tBlur: " << currBlur << "\tBest: " << bestBlur << std::flush;
+                cout << '\r' << "Frame: " << n << "\tBlur: " << currBlur << "\tBest: " << bestBlur << std::flush;
                 if (currBlur > bestBlur) {    //if current blur is better, replaces best frame
                     bestBlur = currBlur;
                     bestframe = frame.clone();  //best fram is a copy of frame
@@ -231,12 +236,12 @@ int main(int argc, char *argv[]) {
             }
             //< finally the new keyframe is the best frame from las iteration
             keyframe = bestframe.clone();
-            cout << " >> best frame found";
+//            cout << " >> best frame found";
             out_frame ++;
 
             OutputFileName.str("");
             OutputFileName << OutputFile << setfill('0') << setw(4) << out_frame << ".jpg";
-            cout << "  >> storing best frame... ";
+//            cout << "  >> storing best frame... ";
             imwrite(OutputFileName.str(), bestframe);
 
 #ifdef _VERBOSE_ON_
