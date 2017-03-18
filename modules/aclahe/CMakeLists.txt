@@ -43,3 +43,4 @@ add_executable(curve_fit curve_fit.cpp)
 
 # Link your application with OpenCV libraries
 target_link_libraries(aclahe ${OpenCV_LIBS} ${CUDA_LIBRARIES})
+target_link_libraries(aclahe ${OpenCV_LIBS} ${CUDA_LIBRARIES} dlib::dlib)

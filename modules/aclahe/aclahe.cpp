@@ -71,7 +71,7 @@ int imgWidth, imgHeight;
 	@fn		int main(int argc, char* argv[])
 	@brief	Main function
 */
-int main(int argc, char *argv[]) {
+int main(int argc, const char *const *argv) {
 //*********************************************************************************
 /* PARSER */
     String keys =
@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
                     "{display  |      | show the input/output images}"      // optional, show images
                     "{help h usage ?  |      | show this help message}";      // optional, show help optional
 
-    CommandLineParser cvParser(argc, argv, keys);
+    CommandLineParser cvParser(argc, (const char *const *) argv, keys);
     cvParser.about("aclahe module v0.1");
 
     if (argc < 3 || cvParser.has("help")) {
