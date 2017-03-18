@@ -38,6 +38,8 @@ endif()
 
 # Declare the executable target built from your sources
 add_executable(aclahe aclahe.cpp)
+# Declare the executable target built from your sources
+add_executable(curve_fit curve_fit.cpp)
 
 # Link your application with OpenCV libraries
 target_link_libraries(aclahe ${OpenCV_LIBS} ${CUDA_LIBRARIES})
