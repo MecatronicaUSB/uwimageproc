@@ -79,6 +79,7 @@ int main(int argc, char *argv[]) {
                     "{@output |<none> | Prefix for output .jpg images}" // output prefix is the second argument (positional)
                     "{p      |0.95  | Percent of desired overlap between consecutive frames (0.0 to 1.0)}"
                     "{k      |      | Defines window size of k-frames for keyframe tuning}"
+                    "{s      | 0    | Skip NN seconds from the start of the video}"
                     "{help h usage ?  |      | show this help message}";      // optional, show help optional
 
     CommandLineParser cvParser(argc, argv, keys);
@@ -92,9 +93,9 @@ int main(int argc, char *argv[]) {
         cout << "Overlap of consecutive selected frames is estimated through homography matrix H" << endl;
         cvParser.printMessage();
         cout << endl << "\tExample:" << endl;
-        cout << "\t$ videostrip -p 0.6 input.avi vdout_" << endl;
+        cout << "\t$ videostrip -p=0.6 -k=5 -s=12 input.avi vdout_" << endl;
         cout <<
-        "\tThis will open 'input.avi' file, extract frames with 60% of overlapping and export into 'vdout_XXXX.jpg' images" <<
+        "\tThis will open 'input.avi' file, extract frames with 60% of overlapping, skipping first 12 seconds, and export into 'vdout_XXXX.jpg' images" <<
         endl << endl;
         return 0;
     }
@@ -103,6 +104,7 @@ int main(int argc, char *argv[]) {
     String OutputFile = cvParser.get<cv::String>(1);
     ostringstream OutputFileName;
 
+	int timeSkip = cvParser.get<int>("s"); 
     int kWindow = cvParser.get<int>("k");
     float overlap = cvParser.get<float>("p");
 
@@ -172,6 +174,14 @@ int main(int argc, char *argv[]) {
     cout << "\thResize:\t" << hResizeFactor << endl;
     cout << "Target overlap:\t" << overlap << endl;
     cout << "K-Window size:\t" << kWindow << endl;
+	if (timeSkip > 0) cout << "Time skip:\t" << timeSkip << endl;
+
+	//we compute the (exact) number of frames to be skipped
+	float frameSkip;
+	if (timeSkip > 0){
+		frameSkip = (float)timeSkip * videoFrames;
+		capture.set(CV_CAP_PROP_POS_MSEC, timeSkip*1000);
+	}
 
     //**************************************************************************
     /* PROCESS START */
@@ -196,7 +206,7 @@ int main(int argc, char *argv[]) {
     while (keyboard != 'q' && keyboard != 27) {
         t = (double) getTickCount();
         //read the current frame, if fails, the quit
-        if (! capture.read(frame)) {
+        if (!capture.read(frame)) {
             cerr << "Unable to read next frame." << endl;
             cerr << "Exiting..." << endl;
             exit(EXIT_FAILURE);
@@ -204,16 +214,27 @@ int main(int argc, char *argv[]) {
         read_frame ++;
 
         float bestBlur = 0.0, currBlur;    //we start using the current frame blur as best blur value yet
+//		cout << ">RESIZE frame-------" << endl;
         resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);
+//		cout << ">OVERLAP-------" << endl;
         over = calcOverlap(res_keyframe, res_frame);
         cout << '\r' << "Frame: " << read_frame << " [" << out_frame << "]\tOverlap: " << over << std::flush;
 
-        if ((over < overlap) && (over > OVERLAP_MIN)) {
-            cout << "\t> Refining for Blur" << endl;
+		//special case: overlap cannot be computed, we force it
+		if (over == -2.0){
+/*			cout << endl << "Forcing current new keyframe" << endl;
+			keyframe = frame.clone();		
+	        resize(keyframe, res_keyframe, cv::Size(), hResizeFactor, hResizeFactor);*/
+			over = OVERLAP_MIN + 0.01;
+//			cout << ">FORCED-------" << endl;
+		}
+		if ((over < overlap) && (over > OVERLAP_MIN)) {
+			cout << endl;
             /*!
             Start to search best frames in i+k frames, according to "blur level" estimator (based on Laplacian variance)
             We start using current frame as best frame so far
             */
+//			cout << ">REFINE-------" << endl;
             bestBlur = calcBlur(res_frame);
             bestframe = frame.clone();
             //for each frame inside the k-consecutive frame window, we refine the search
@@ -228,7 +249,7 @@ int main(int argc, char *argv[]) {
                 resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);    //uses a resized version
                 currBlur = calcBlur(res_frame);    //we operate over the resampled image for speed purposes
 
-                cout << '\r' << "Frame: " << n << "\tBlur: " << currBlur << "\tBest: " << bestBlur << std::flush;
+                cout << '\r' << "Refining for Blur [" << n+1 << "/" << kWindow << "]\tBlur: " << currBlur << "\tBest: " << bestBlur << std::flush;
                 if (currBlur > bestBlur) {    //if current blur is better, replaces best frame
                     bestBlur = currBlur;
                     bestframe = frame.clone();  //best fram is a copy of frame
@@ -239,9 +260,11 @@ int main(int argc, char *argv[]) {
 //            cout << " >> best frame found";
             out_frame ++;
 
+//			cout << ">FOUND-------" << endl;
             OutputFileName.str("");
             OutputFileName << OutputFile << setfill('0') << setw(4) << out_frame << ".jpg";
 //            cout << "  >> storing best frame... ";
+//			cout << ">SAVE-------" << endl;
             imwrite(OutputFileName.str(), bestframe);
 
 #ifdef _VERBOSE_ON_
@@ -249,7 +272,9 @@ int main(int argc, char *argv[]) {
             cout << endl << "BestBlur: " << t << " ms" << endl;
             t = (double) getTickCount();
 #endif
+			cout << "..." << endl;
             resize(keyframe, res_keyframe, cv::Size(), hResizeFactor, hResizeFactor);
+//			cout << ">RESIZE keyframe-------" << endl;
         }
 
         //get the input from the keyboard
@@ -303,9 +328,10 @@ float calcOverlap(Mat img_scene, Mat img_object) {
         cout << " --(!) Error reading images " << std::endl;
         return - 1;
     }
+//	cout << ">>[OV] Data ok-------" << endl;
 
     //-- Step 1: Detect the keypoints using SURF Detector
-    int minHessian = 300;
+    int minHessian = 400;
     Mat descriptors_object, descriptors_scene;
     vector<KeyPoint> keypoints_object, keypoints_scene;
 
@@ -339,6 +365,8 @@ float calcOverlap(Mat img_scene, Mat img_object) {
     double max_dist = 0;
     double min_dist = 100;
 
+//	cout << ">>[OV] SURF ok-------" << endl;
+
     Ptr<cuda::DescriptorMatcher> matcher_gpu = cuda::DescriptorMatcher::createBFMatcher();
     vector<vector<DMatch> > matches_gpu;
     matcher_gpu->knnMatch(gpu_descriptors_object, gpu_descriptors_scene, matches_gpu, 2);
@@ -346,7 +374,7 @@ float calcOverlap(Mat img_scene, Mat img_object) {
     //-- Step 4: Select only good matches
     std::vector<DMatch> good_matches_gpu;
     for (int k = 0; k < std::min(keypoints_object.size() - 1, matches_gpu.size()); k ++) {
-        if ((matches_gpu[k][0].distance < 0.6 * (matches_gpu[k][1].distance)) &&
+        if ((matches_gpu[k][0].distance < 0.8 * (matches_gpu[k][1].distance)) &&
             ((int) matches_gpu[k].size() <= 2 && (int) matches_gpu[k].size() > 0)) {
             // take the first result only if its distance is smaller than 0.6*second_best_dist
             // that means this descriptor is ignored if the second distance is bigger or of similar
@@ -359,12 +387,15 @@ float calcOverlap(Mat img_scene, Mat img_object) {
     cout << "\t | BFMatcher GPU: " << t << " ms ";
     t = (double) getTickCount();
 #endif
+
+//	cout << ">>[OV] MATCHER ok-------" << endl;
+
     //***************************************************************//
     //we must check if found H matrix is good enough. It requires at least 4 points
     if (good_matches_gpu.size() < 4) {
         cout << "[WARN] Not enough good matches!" << endl;
         //we fail to estimate new overlap
-        return 0;
+        return -2.0;
     }
     else {
         //-- Localize the object
@@ -380,6 +411,9 @@ float calcOverlap(Mat img_scene, Mat img_object) {
         // Check http://nghiaho.com/?page_id=611 for an external solution
         // Avg time: 0.7 ms CPU
         Mat H = findHomography(obj, scene, RANSAC);
+		
+		if (H.empty())	return -2.0;
+
         float dx = fabs(H.at<double>(0, 2));
         float dy = fabs(H.at<double>(1, 2));
         float overlap = (videoWidth - dx) * (videoHeight - dy) / (videoWidth * videoHeight);
