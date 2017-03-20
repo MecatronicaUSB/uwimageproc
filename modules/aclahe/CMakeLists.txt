@@ -1,5 +1,6 @@
 # cmake needs this line
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.1)
+set (CMAKE_CXX_STANDARD 11)
 
 # Define project name
 project(automatic_clahe)
@@ -43,4 +44,4 @@ add_executable(curve_fit curve_fit.cpp)
 
 # Link your application with OpenCV libraries
 target_link_libraries(aclahe ${OpenCV_LIBS} ${CUDA_LIBRARIES})
-target_link_libraries(aclahe ${OpenCV_LIBS} ${CUDA_LIBRARIES} dlib::dlib)
+target_link_libraries(curve_fit)

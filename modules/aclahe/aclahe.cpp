@@ -14,6 +14,7 @@
 #include <iomanip>
 #include <sstream>
 #include <fstream>
+#include <vector>
 
 
 // OpenCV libraries
@@ -32,18 +33,17 @@
 //#include "opencv2/cudafeatures2d.hpp"
 
 //D-LIB Curve fitting
-#include <dlib/optimization.h>
+#include "/media/ssd/installs/dlib-19.4/dlib/optimization.h"
 
 //#define _VERBOSE_ON_
-#define CL_MIN 0.0
+#define CL_MIN 0.01
 #define CL_MAX 25.0
 #define CL_STEP 0.25
 
-using namespace dlib;
 using namespace cv;
 using namespace cv::cuda;
-//using namespace cv::xfeatures2d;
 using namespace std;
+using namespace dlib;
 
 
 char keyboard = 0;
@@ -54,7 +54,19 @@ struct _entropy {
     int BS;
     float CL;
     float Entropy;
-};
+};//*/
+
+typedef dlib::matrix<double,1,1> input_vector;
+typedef dlib::matrix <double,5,1> parameter_vector;
+
+parameter_vector par_x;
+
+double calcEntropy(Mat image);
+double curveModel (const input_vector& input, const parameter_vector& params);
+double curveResidual (const std::pair<input_vector, double>& data, const parameter_vector& params);
+int curveFitting( std::vector<std::pair<input_vector, double> > data_samples);
+
+int imgWidth, imgHeight;
 
 //**** 1- Parse arguments from CLI
 //**** 2- Read input file
@@ -62,10 +74,6 @@ struct _entropy {
 //**** 4- Curve fitting to extract curvature
 //**** 5- Select breakpoint for Entropy vs CL
 //**** 6- Applies CL/BS to image
-
-double calcEntropy(Mat image);
-
-int imgWidth, imgHeight;
 
 /*!
 	@fn		int main(int argc, char* argv[])
@@ -173,8 +181,10 @@ int main(int argc, const char *const *argv) {
     /* CREATE CL AND BS VECTOR */
     //**************************************************************************
     static int m[] = {2, 4, 8, 16, 32};
-    vector<int> BlockSize(m, m + sizeof(m) / sizeof(m[0]));
-    vector<float> ClipLimit;
+//    static int m[] = {8};
+
+//    std::vector<int> BlockSize(m, m + sizeof(m) / sizeof(m[0]));
+    std::vector<float> ClipLimit;
 
     // Now, we must create a vector as in Matlab [0.0 : 0.25 : 25.0]
     for (float f = CL_MIN; f <= CL_MAX; f += CL_STEP)
@@ -184,43 +194,62 @@ int main(int argc, const char *const *argv) {
     /* APPLY CLAHE FOR EACH CL/BS COMBINATION */
     //**************************************************************************
     cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
-    vector<_entropy> entropy;
+   std::vector<_entropy> entropy;
 
-    // for speed purpose, we extract BSxBS subimages, and we operate over it
-    for (int j = 0; j < BlockSize.size(); j++) {
-        cout << "BS: " << BlockSize.at(j) << endl;
-        for (int i = 0; i < ClipLimit.size(); i++) {
-            //        cout << "CL: " << ClipLimit.at(i) << endl;
-            int BS = BlockSize.at(j);
-            clahe->setClipLimit(ClipLimit.at(i));
-            clahe->setTilesGridSize(Size(BS, BS));
-            clahe->apply(dst, tmp);
-            //**************************************************************************
-            /* COMPUTE ENTROPY FOR EACH CASE */
-            //**************************************************************************
-            //we store a copy of the current 3-tuple entropy data
-            _entropy curr_entropy;
-            curr_entropy.BS = BS;
-            curr_entropy.CL = ClipLimit.at(i);
-            curr_entropy.Entropy = calcEntropy(tmp);
-            entropy.push_back(curr_entropy);
+    //we create the conatiner for the data pairs vector
+    std::vector<std::pair<input_vector, double> > data_samples;
+    input_vector input;
 
-            outfile << curr_entropy.Entropy << '\t';
-            cout << curr_entropy.Entropy << '\t';
-        }
-        outfile << endl;
-        cout << endl;
+    // for speed purpose, we start with BS = 8x8, while varying CL
+    int BlockSize = 8;
+    float fEntropy;
+
+    for (int i = 0; i < ClipLimit.size(); i++) {
+        //        cout << "CL: " << ClipLimit.at(i) << endl;
+        int BS = BlockSize;
+        double CL = ClipLimit.at(i);
+        clahe->setClipLimit(CL);
+        clahe->setTilesGridSize(Size(BS, BS));
+        clahe->apply(dst, tmp);
+        fEntropy = calcEntropy(tmp);
+        //**************************************************************************
+        /* COMPUTE ENTROPY FOR EACH CASE */
+        //**************************************************************************
+        //we store a copy of the current 3-tuple entropy data
+        _entropy curr_entropy;
+        curr_entropy.BS = BS;
+        curr_entropy.CL = ClipLimit.at(i);
+        curr_entropy.Entropy = fEntropy;
+        entropy.push_back(curr_entropy);
+
+        //now, we push the CL & Entropy into the data vector
+        input(0) = CL;
+        data_samples.push_back(make_pair(input, fEntropy));
+
+        //outfile << CL << '\t' << fEntropy << endl;
+        cout << curr_entropy.Entropy << '\t';
     }
+    cout << endl;
 
-    cout << "CL Size" << ClipLimit.size() << endl;
-
-    outfile.close();
+    cout << "CL Vector Size: " << ClipLimit.size() << endl;
+    cout << "Data Matrix Size: " << data_samples.size() << endl;
     //**************************************************************************
     /* CURVE FITTING */
     //**************************************************************************
+	//Now we proceed to adjust curve to obtained data, so we can identify maximum curvature point (breakpoint)
+    curveFitting(data_samples);
 
+    //HERE, WE EXPORT DE DATA_SAMPLES TO CHECK TRAINING
+    for (int g=0; g < data_samples.size(); g++){
+        input(0) = (double) data_samples.at(g).first;
+        outfile << input(0) << '\t' << (double) data_samples.at(g).second << '\t';
+        outfile << (double) curveModel(input, par_x) << endl;
+    }
+    outfile.close();
     //**************************************************************************
     /* BREAKPOINT DETECTION */
+    //**************************************************************************
+
     //**************************************************************************
     /* FINAL CLAHE APPLIED WITH SELECTED CL/BS */
 	//*****************************************************************************
@@ -260,4 +289,67 @@ double calcEntropy(Mat image) {
     return e;
 }
 
+/*! @fn float curveModel (const input_vector& input, const parameter_vector& params)
+    @brief Target curve model to be fitted with Entropy vs CL data
+    @param input vector containing the input data
+    @param params vector containing function parameters c1, c2, l1, l2 to be optimized
+	@retval The output for the target curve being fitted
+*/
+double curveModel (const input_vector& input, const parameter_vector& params){
+    // Here are the 4 parameters to be optimized while fitting the exponential function
+    const double a = params(0);
+    const double b = params(1);
+    const double c = params(2);
+    const double d = params(3);
+    const double e = params(4);
+    // This is the single input 'x' for our fitting curve
+    const double x = input(0);
 
+//    const double output = a*exp(-b*x) + c*exp(-d*x);
+//    const double output = a*log(b*x+c) + d;
+    const double output = a + b*x + c*x*x + d*x*x*x + e*x*x*x*x;
+
+    return output;
+}
+
+/*! @fn float curveResidual (const std::pair<input_vector, double>& data, const parameter_vector& params)
+    @brief Computes the amount of error between the model and the expected output
+    @param data vector containing the data input and output pair
+    @param params vector containing function parameters c1, c2, l1, l2 to be optimized, to be fed to the curveModel
+	@retval The output error
+*/
+double curveResidual (const std::pair<input_vector, double>& data, const parameter_vector& params){
+    return curveModel(data.first, params) - data.second;
+}
+
+
+int curveFitting( std::vector<std::pair<input_vector, double> > data_samples){
+    try{
+        //generate a random seed parameters vector to start. If we know a better start seed, we could include it
+        const parameter_vector params = 7*randm(5,1);
+        cout << "Params: " << trans(params) << endl;
+
+        //now, we must generate the input/output pairs according to our model, and the CL vs Entropy data
+        par_x = 1;
+        cout << "Use Levenberg-Marquardt, approximate derivatives" << endl;
+        // If we didn't create the residual_derivative function then we could
+        // have used this method which numerically approximates the derivatives for you.
+        solve_least_squares_lm(objective_delta_stop_strategy(1e-7).be_verbose(),
+                               curveResidual,
+                               derivative(curveResidual),
+                               data_samples,
+                               par_x);
+
+        // Now x contains the solution.  If everything worked it will be equal to params.
+        cout << "inferred parameters: "<< trans(par_x) << endl;
+        cout << "solution error:      "<< length(par_x - params) << endl;
+        cout << endl;
+    }
+
+    catch (std::exception& e)
+    {
+        cout << e.what() << endl;
+    }
+
+    return 0;
+}
