@@ -36,9 +36,9 @@
 #include "/media/ssd/installs/dlib-19.4/dlib/optimization.h"
 
 //#define _VERBOSE_ON_
-#define CL_MIN 0.01
-#define CL_MAX 25.0
-#define CL_STEP 0.25
+#define CL_MIN 0.001
+#define CL_MAX 1.0
+#define CL_STEP 0.05
 
 using namespace cv;
 using namespace cv::cuda;
@@ -187,6 +187,10 @@ int main(int argc, const char *const *argv) {
     std::vector<float> ClipLimit;
 
     // Now, we must create a vector as in Matlab [0.0 : 0.25 : 25.0]
+    /* In OpenCV, ClipLimit is the non-normalized value to limit tileHist[i] array values */
+    /* We should feed OpenCV the non-normalized value, but for DLib curve fitting, must be normalized */
+    /* The maximum value is given by the number of pixels in the tile (BS*BS)*/
+    /* The step can be fixed or relative */
     for (float f = CL_MIN; f <= CL_MAX; f += CL_STEP)
         ClipLimit.push_back(f);
 
@@ -231,8 +235,8 @@ int main(int argc, const char *const *argv) {
     }
     cout << endl;
 
-    cout << "CL Vector Size: " << ClipLimit.size() << endl;
-    cout << "Data Matrix Size: " << data_samples.size() << endl;
+/*    cout << "CL Vector Size: " << ClipLimit.size() << endl;
+    cout << "Data Matrix Size: " << data_samples.size() << endl;*/
     //**************************************************************************
     /* CURVE FITTING */
     //**************************************************************************
@@ -285,8 +289,8 @@ double calcEntropy(Mat image) {
     Mat aprox_log;
     cv::log(hist + 0.00001, aprox_log);
 
-    double e = -1.0 * cv::sum((hist.mul(aprox_log)))[0];
-    return e;
+    double _entropy = -1.0 * cv::sum((hist.mul(aprox_log)))[0];
+    return _entropy;
 }
 
 /*! @fn float curveModel (const input_vector& input, const parameter_vector& params)
@@ -305,9 +309,9 @@ double curveModel (const input_vector& input, const parameter_vector& params){
     // This is the single input 'x' for our fitting curve
     const double x = input(0);
 
-//    const double output = a*exp(-b*x) + c*exp(-d*x);
-//    const double output = a*log(b*x+c) + d;
-    const double output = a + b*x + c*x*x + d*x*x*x + e*x*x*x*x;
+    const double output = a*exp(-b*x) + c*exp(-d*x);
+//    const double output = a*log(e*x*x + b*x + c) + d;
+//    const double output = a + b*x + c*x*x + d*x*x*x + e*x*x*x*x;
 
     return output;
 }
@@ -323,11 +327,12 @@ double curveResidual (const std::pair<input_vector, double>& data, const paramet
 }
 
 
-int curveFitting( std::vector<std::pair<input_vector, double> > data_samples){
+int curveFitting( std::vector<std::pair<input_vector, double> > dacata_samples){
     try{
+
         //generate a random seed parameters vector to start. If we know a better start seed, we could include it
-        const parameter_vector params = 7*randm(5,1);
-        cout << "Params: " << trans(params) << endl;
+        const parameter_vector params = 4*randm(5,1);
+//        cout << "Params: " << trans(params) << endl;
 
         //now, we must generate the input/output pairs according to our model, and the CL vs Entropy data
         par_x = 1;
@@ -350,6 +355,5 @@ int curveFitting( std::vector<std::pair<input_vector, double> > data_samples){
     {
         cout << e.what() << endl;
     }
-
     return 0;
 }
