@@ -36,15 +36,19 @@
 #include "/media/ssd/installs/dlib-19.4/dlib/optimization.h"
 
 //#define _VERBOSE_ON_
-#define CL_MIN 0.001
-#define CL_MAX 1.0
+/*#define CL_MIN  1
+#define CL_STEP 1
+#define CL_MAX  256*/
+#define CL_MIN  0.01
 #define CL_STEP 0.05
+#define CL_MAX  1.00
 
 using namespace cv;
 using namespace cv::cuda;
 using namespace std;
 using namespace dlib;
 
+ofstream histfile("hist.txt", ios::out);
 
 char keyboard = 0;
 // Timing monitor
@@ -67,6 +71,7 @@ double curveResidual (const std::pair<input_vector, double>& data, const paramet
 int curveFitting( std::vector<std::pair<input_vector, double> > data_samples);
 
 int imgWidth, imgHeight;
+float imgSize;
 
 //**** 1- Parse arguments from CLI
 //**** 2- Read input file
@@ -108,6 +113,7 @@ int main(int argc, const char *const *argv) {
     ostringstream OutputFileName;
 
     ofstream outfile("out.txt", ios::out);
+    ofstream histfile("hist.txt", ios::out);
 
 
     if (! cvParser.check()) {
@@ -166,8 +172,9 @@ int main(int argc, const char *const *argv) {
         cout << "Error loading input file (empty resulting matrix" << endl;
     }
 
-/*    imshow("Source image", src);
-    waitKey(100);*/
+    imgWidth = src.cols;
+    imgHeight = src.rows;
+    imgSize = imgWidth * imgHeight;
 
     //**************************************************************************
     /* GAUSSIAN FILTER */
@@ -205,13 +212,15 @@ int main(int argc, const char *const *argv) {
     input_vector input;
 
     // for speed purpose, we start with BS = 8x8, while varying CL
-    int BlockSize = 8;
+    int BlockSize = 16;
     float fEntropy;
 
     for (int i = 0; i < ClipLimit.size(); i++) {
         //        cout << "CL: " << ClipLimit.at(i) << endl;
         int BS = BlockSize;
-        double CL = ClipLimit.at(i);
+        int CL = (int) (ClipLimit.at(i)*BS*BS);
+//        int CL = ClipLimit.at(i);
+
         clahe->setClipLimit(CL);
         clahe->setTilesGridSize(Size(BS, BS));
         clahe->apply(dst, tmp);
@@ -222,16 +231,19 @@ int main(int argc, const char *const *argv) {
         //we store a copy of the current 3-tuple entropy data
         _entropy curr_entropy;
         curr_entropy.BS = BS;
-        curr_entropy.CL = ClipLimit.at(i);
+        curr_entropy.CL = CL;
         curr_entropy.Entropy = fEntropy;
         entropy.push_back(curr_entropy);
 
         //now, we push the CL & Entropy into the data vector
-        input(0) = CL;
+        input(0) = ClipLimit.at(i); //using the normalized data
+//        input(0) = (double) CL/(BS*BS); //non-normalized
         data_samples.push_back(make_pair(input, fEntropy));
 
         //outfile << CL << '\t' << fEntropy << endl;
-        cout << curr_entropy.Entropy << '\t';
+        cout << "CL: " << CL << " E: " << curr_entropy.Entropy << '\n';
+        imshow("Source image", tmp);
+        waitKey(10);
     }
     cout << endl;
 
@@ -250,6 +262,7 @@ int main(int argc, const char *const *argv) {
         outfile << (double) curveModel(input, par_x) << endl;
     }
     outfile.close();
+    histfile.close();
     //**************************************************************************
     /* BREAKPOINT DETECTION */
     //**************************************************************************
@@ -274,7 +287,7 @@ double calcEntropy(Mat image) {
     entropia = -1 * (histograma*AproxLogs).sum()
     return entropia*/
 
-    MatND hist;
+    Mat hist,tmp;
     int channels[] = {0};
     float grange[] = {0.0, 256.0};
     const float *range[] = {grange};
@@ -282,8 +295,26 @@ double calcEntropy(Mat image) {
     //computing the histogram for the input image
     calcHist(&image, 1, channels, Mat(), hist, 1, histSize, range, true, false);
 
+    Mat histPlot (100,256, CV_8UC1);
+    for (int ii=0; ii<256; ii++){
+        int mag;//hist.get(ii,0);
+        mag = (int) (100 * (hist.at<float>(0,ii) / imgSize));
+            line(histPlot,Point(ii,0),Point(ii,mag ),Scalar(255,0,0));
+    }
+
+    namedWindow("Hist",1);
+    imshow("Hist",histPlot);
+
+    waitKey(1000);
+    //cout << "Histogram:" << endl << hist << endl;
+    cv::transpose(hist,tmp);
+    histfile << tmp << endl;
     //we compute the sum of all elements (for a given histogram of a MxN matrix, it should give MxN)
     double sum = image.size().width * image.size().height;
+
+/*    double minVal, maxVal;
+    minMaxLoc(hist, &minVal, &maxVal);
+    cout << "HistMinMax: [" << (int) minVal << ">-<" << (int) maxVal << "]\t";*/
 
     hist = hist / sum;
     Mat aprox_log;
@@ -327,7 +358,7 @@ double curveResidual (const std::pair<input_vector, double>& data, const paramet
 }
 
 
-int curveFitting( std::vector<std::pair<input_vector, double> > dacata_samples){
+int curveFitting( std::vector<std::pair<input_vector, double> > data_samples){
     try{
 
         //generate a random seed parameters vector to start. If we know a better start seed, we could include it
