@@ -18,7 +18,6 @@
 #include <fstream>
 #include <stdlib.h>
 
-
 // OpenCV libraries. May need review
 #include <opencv2/core.hpp>
 #include "opencv2/core/ocl.hpp"
@@ -41,7 +40,7 @@
 #define DEFAULT_KWINDOW 11         //< Search window size for best blur-based frame, after new key frame
 
 //#define _VERBOSE_ON_
-
+// C++ namespaces
 using namespace cv;
 using namespace cv::cuda;
 using namespace cv::xfeatures2d;
@@ -49,8 +48,7 @@ using namespace std;
 
 char keyboard = 0;	// keyboard input character
 
-// Timing monitor
-double t;
+double t;	// Timing monitor
 
 // General structure index:
 //**** 1- Parse arguments from CLI
@@ -79,6 +77,7 @@ float hResizeFactor;
 	@brief	Main function
 */
 int main(int argc, char *argv[]) {
+
 //*********************************************************************************
 /*	PARSER section */
 /*  Uses built-in OpenCV parsing method cv::CommandLineParser. It requires a string containing the arguments to be parsed from
@@ -112,16 +111,16 @@ int main(int argc, char *argv[]) {
 
     String InputFile = cvParser.get<cv::String>(0);		//String containing the input file path+name from cvParser function
     String OutputFile = cvParser.get<cv::String>(1);	//String containing the output file template from cvParser function
-    ostringstream OutputFileName;	// output string that will contain the desired output file name
+    ostringstream OutputFileName;						// output string that will contain the desired output file name
 
-	int timeSkip = cvParser.get<int>("s"); 		// gets argument -s=NN, where NN is the number of seconds to skip
-    int kWindow = cvParser.get<int>("k");		// gets argument -k=WW, where WW is the size of the search window for best frame
+	int timeSkip = cvParser.get<int>("s"); 		// gets argument -s=NN, where NN is the number of seconds to skip from the start of the video
+    int kWindow = cvParser.get<int>("k");		// gets argument -k=WW, where WW is the size of the search window for the best frame 
     float overlap = cvParser.get<float>("p");	// gets argument -p=OO, where OO is the desired overlap among frames
 
 	// Check if ocurred any error during parsing process
     if (! cvParser.check()) {
         cvParser.printErrors();
-        return - 1;
+        return -1;
     }
 
     //************************************************************************

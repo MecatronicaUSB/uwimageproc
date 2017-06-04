@@ -6,4 +6,6 @@
 - Test post-commit hook from Github to Trac
 - Test ticket and commit integration
 * Push base repo module, with proposed directory hierarchy (-check among other projects)
+- Clone repo into bitbucket por private developments
+- Choose OS license
 - 
