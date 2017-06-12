@@ -11,6 +11,15 @@
 #/* File: 	list_images.sh							                */
 #/********************************************************************/
 
+## @file   list_images.sh
+## @brief  Export a list of image files in OpenCV XML format
+##
+## @param  -i path to files to be searched
+## @param  -f image file extension to be searched
+## @param  -o output file, where the list of files will be stored in XML format
+## @return Exit code, 1 on success
+# -----------------------------------------------------------------------------
+
 
 #!/bin/bash
 # Created 2015-10-26
