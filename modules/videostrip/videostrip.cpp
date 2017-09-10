@@ -16,14 +16,14 @@
 /* Collaborators: <none>											*/
 /********************************************************************/
 
-//Basic C and C++ libraries
+///Basic C and C++ libraries
 #include <iostream>
 #include <iomanip>
 #include <sstream>
 #include <fstream>
 #include <stdlib.h>
 
-// OpenCV libraries. May need review for the final release
+/// OpenCV libraries. May need review for the final release
 #include <opencv2/core.hpp>
 #include "opencv2/core/ocl.hpp"
 #include "opencv2/imgproc.hpp"
@@ -33,12 +33,12 @@
 #include "opencv2/calib3d.hpp"
 #include <opencv2/xfeatures2d.hpp>
 
-// CUDA specific libraries
+/// CUDA specific libraries
 #include <opencv2/cudafilters.hpp>
 #include "opencv2/cudafeatures2d.hpp"
 #include "opencv2/xfeatures2d/cuda.hpp"
 
-// Constant definitios
+/// Constant definitios
 #define TARGET_WIDTH	640        //< Resized image width
 #define TARGET_HEIGHT	480        //< Resized image height
 #define OVERLAP_MIN  	0.4        //< Minimum desired overlap among consecutive key frames
@@ -63,8 +63,8 @@ double t;	// Timing monitor
 //**** 5- Extract following frames
 //****	5.1- Compute Homography matrix
 //****	5.2- Estimate overlapping of current frame with previous keyframe
-//	5.3- If it falls below treshold, pick best quality frame in the neighbourhood
-//****	5.4- Asign it as next keyframe
+//	5.3- If it falls below threshold, pick best quality frame in the neighbourhood
+//****	5.4- Assign it as next keyframe
 //****	5.5 Repeat from 5
 
 // See description in function definition
@@ -75,6 +75,8 @@ float calcBlur(Mat frame);
 // Video width and height
 int videoWidth, videoHeight;
 // Resize factor from original video frame size to desired TARGET_WIDTH or TARGET_HEIGHT
+// This is for fast motion estimation through homography. Perhaps some optical-flow approach could work faster
+// Image tiling may improve homography quality by forcing well-spread control points along the image (See CIRS paper)
 float hResizeFactor;
 
 /*!
@@ -99,7 +101,7 @@ int main(int argc, char *argv[]) {
     CommandLineParser cvParser(argc, argv, keys);
     cvParser.about("videostrip module v0.3");	//adds "about" information to the parser method
 
-	//if the numer of arguments is lower than 3, or contains "help" keyword the shows the help
+	//if the number of arguments is lower than 3, or contains "help" keyword, then we show the help
 	if (argc < 3 || cvParser.has("help")) {
         cout << "Automatically extract video frames for 2D mosaic generation or 3D model reconstruction" << endl;
         cout <<
@@ -122,7 +124,7 @@ int main(int argc, char *argv[]) {
     int kWindow = cvParser.get<int>("k");		// gets argument -k=WW, where WW is the size of the search window for the best frame 
     float overlap = cvParser.get<float>("p");	// gets argument -p=OO, where OO is the desired overlap among frames
 
-	// Check if ocurred any error during parsing process
+	// Check if occurred any error during parsing process
     if (! cvParser.check()) {
         cvParser.printErrors();
         return -1;
@@ -148,8 +150,8 @@ int main(int argc, char *argv[]) {
     /* CUDA */
     int nCuda = - 1;    //<Defines number of detected CUDA devices. By default, -1 acting as error value
 
-	// TODO: read about possible failure on run time when calling CUDA methods in non-CUDA hardware.
-	// CHECK if possible with try-catch pair
+	// TODO: read about possible failure at runtime when calling CUDA methods in non-CUDA hardware.
+	// CHECK whether it is possible with try-catch pair
     cout << "Built with OpenCV " << CV_VERSION << endl;
     nCuda = cuda::getCudaEnabledDeviceCount();	// we try to detect any existing CUDA device
     cuda::DeviceInfo deviceInfo;
@@ -161,6 +163,7 @@ int main(int argc, char *argv[]) {
         cout << "Exiting... use non-GPU version instead" << endl;
     }
 	// TODO: How to operate when multiple CUDA devices are detected?
+    // So far, we work with the first detected CUDA device. Maybe, add some CUDA probe mode when called
     cuda::setDevice(0);
     cout << "***************************************" << endl;
     cout << "Input: " << InputFile << endl;
@@ -171,7 +174,7 @@ int main(int argc, char *argv[]) {
     //<create the capture object
     VideoCapture capture(InputFile);
     if (! capture.isOpened()) {
-        //error in opening the video input
+        //error while opening the video input
         cerr << "Unable to open video file: " << InputFile << endl;
         exit(EXIT_FAILURE);
     }
@@ -179,7 +182,7 @@ int main(int argc, char *argv[]) {
     videoWidth = capture.get(CV_CAP_PROP_FRAME_WIDTH);
     videoHeight = capture.get(CV_CAP_PROP_FRAME_HEIGHT);
 
-    // we compute the resize factor for the horizontal dimension. As we preserve the aspect ratio, is the same for the veritcal resizing
+    // we compute the resize factor for the horizontal dimension. As we preserve the aspect ratio, is the same for the vertical resizing
     hResizeFactor = (float) TARGET_WIDTH / videoWidth;
 
     float videoFPS = capture.get(CV_CAP_PROP_FPS);
@@ -202,7 +205,7 @@ int main(int argc, char *argv[]) {
 
     //**************************************************************************
     /* PROCESS START */
-    // Next, we start reading frames from video
+    // Next, we start reading frames from the input video
     Mat frame(videoWidth, videoHeight, CV_8UC1);
     Mat keyframe, bestframe, res_keyframe, res_frame;
 
@@ -237,7 +240,8 @@ int main(int argc, char *argv[]) {
         over = calcOverlap(res_keyframe, res_frame);
         cout << '\r' << "Frame: " << read_frame << " [" << out_frame << "]\tOverlap: " << over << std::flush;
 
-		//special case: overlap cannot be computed, we force it
+		//special case: overlap cannot be computed, we force it with an impossible negative value
+        // TODO: check better numerically stable way to detect failed overlap detection, rather through forced value
 		if (over == -2.0){
 /*			cout << endl << "Forcing current new keyframe" << endl;
 			keyframe = frame.clone();		
@@ -327,10 +331,10 @@ float calcBlur(Mat frame) {
     Scalar mean, stdev;
     // the we compute the mean and stdev of that frame
     meanStdDev(laplacian, mean, stdev);
-    double m = mean.val[0];
-    double s = stdev.val[0];
-    // we return the standar deviation
-    return s;
+    // double m = mean.val[0];
+    // double s = stdev.val[0];
+    // we return the standard deviation (stdev)
+    return stdev.val[0];
 }
 
 /*! @fn float calcOverlap(Mat img_scene, Mat img_object)
@@ -357,12 +361,13 @@ float calcOverlap(Mat img_scene, Mat img_object) {
     cuda::GpuMat gpu_keypoints_object, gpu_keypoints_scene;
     cuda::GpuMat gpu_descriptors_object, gpu_descriptors_scene;
 
+    // Convert to grayscale
     cvtColor(img_object, img_object, COLOR_BGR2GRAY);
     cvtColor(img_scene, img_scene, COLOR_BGR2GRAY);
-
+    // Upload to GPU
     gpu_img_object.upload(img_object);
     gpu_img_scene.upload(img_scene);
-
+    // Detect keypoints
     cuda::SURF_CUDA surf(minHessian);
     surf(gpu_img_object, cuda::GpuMat(), gpu_keypoints_object, gpu_descriptors_object);
     surf(gpu_img_scene, cuda::GpuMat(), gpu_keypoints_scene, gpu_descriptors_scene);//*/
@@ -425,7 +430,7 @@ float calcOverlap(Mat img_scene, Mat img_object) {
             scene.push_back(keypoints_scene[good_matches_gpu[i].trainIdx].pt);
         }
 
-        // TODO: As OpenCV 3.2, there is no CUDA based implementation for findHomography.
+        // TODO: As OpenCV 3.2, there is no GPU based implementation for findHomography.
         // Check http://nghiaho.com/?page_id=611 for an external solution
         // Avg time: 0.7 ms CPU
         Mat H = findHomography(obj, scene, RANSAC);
