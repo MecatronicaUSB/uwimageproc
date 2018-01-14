@@ -1,4 +1,5 @@
 *.jpg
 *.MOV
+.vscode
 uwimageproc
-modules/vdstrip.cpp
+modules/videostrip/build
