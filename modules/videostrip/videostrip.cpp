@@ -6,14 +6,14 @@
 /* Edited:		30/01/2017, 07:12 PM                                */
 /* Description:						                                
 	Module that extracts frames from video for 2D mosaic or 3D model reconstruction. It estimates the overlap among frames
-	by computing the homography matrix. Current OpenCV implementation uses GPU acceleration for feature detection and matching
-	through CUDA library.
+	by computing the homography matrix. CPU based implementation
 */
 
 /********************************************************************/
 /* Created by:                                                      */
 /* Jose Cappelletto - cappelletto@usb.ve			                */
-/* Collaborators: <none>											*/
+/* Collaborators:                                                   */
+/* Victor Garcia - victorygarciac@gmail.com							*/
 /********************************************************************/
 
 ///Basic C and C++ libraries
@@ -40,7 +40,7 @@
 #define OVERLAP_MIN  	0.4        //< Minimum desired overlap among consecutive key frames
 #define DEFAULT_KWINDOW 11         //< Search window size for best blur-based frame, after new key frame
 
-//#define _VERBOSE_ON_
+// #define _VERBOSE_ON_
 // C++ namespaces
 using namespace cv;
 using namespace cv::cuda;
@@ -51,6 +51,15 @@ char keyboard = 0;	// keyboard input character
 
 double t;	// Timing monitor
 
+// Structure to save the reference frame data, useful to reuse keypoints and descriptors
+typedef struct {
+    bool new_img; 
+    vector<KeyPoint> keypoints;
+    Mat descriptors;
+    Mat img;
+    Mat res_img;
+} struct_keyframe;
+
 // General structure index:
 //**** 1- Parse arguments from CLI
 //**** 2- Read input file
@@ -59,12 +68,12 @@ double t;	// Timing monitor
 //**** 5- Extract following frames
 //****	5.1- Compute Homography matrix
 //****	5.2- Estimate overlapping of current frame with previous keyframe
-//	5.3- If it falls below threshold, pick best quality frame in the neighbourhood
+//****  5.3- If it falls below threshold, pick best quality frame in the neighbourhood
 //****	5.4- Assign it as next keyframe
 //****	5.5 Repeat from 5
 
 // See description in function definition
-float calcOverlap(Mat image_scene, Mat image_object);
+float calcOverlap(struct_keyframe* key_frame, Mat image_object);
 // See description in function definition
 float calcBlur(Mat frame);
 
@@ -203,21 +212,23 @@ int main(int argc, char *argv[]) {
     /* PROCESS START */
     // Next, we start reading frames from the input video
     Mat frame(videoWidth, videoHeight, CV_8UC1);
-    Mat keyframe, bestframe, res_keyframe, res_frame;
+    Mat bestframe, res_frame;
+    struct_keyframe key_frame;
 
     bool bImagen = false;
     float over;
     int out_frame = 0, read_frame = 0;
 
     // we use the first frame as keyframe (so far, further implementations should include cli arg to pick one by user)
-    capture.read(keyframe);     read_frame ++;
+    capture.read(key_frame.img);     read_frame ++;
+    key_frame.new_img = true;
     // resizing for speed purposes
-    resize(keyframe, res_keyframe, cv::Size(hResizeFactor * keyframe.cols, hResizeFactor * keyframe.rows), 0, 0,
+    resize(key_frame.img, key_frame.res_img, cv::Size(hResizeFactor * key_frame.img.cols, hResizeFactor * key_frame.img.rows), 0, 0,
            CV_INTER_LINEAR);
 
     OutputFileName.str("");
     OutputFileName << OutputFile << setfill('0') << setw(4) << out_frame << ".jpg";
-    imwrite(OutputFileName.str(), keyframe);
+    imwrite(OutputFileName.str(), key_frame.img);
 
     while (keyboard != 'q' && keyboard != 27) {
         t = (double) getTickCount();
@@ -233,9 +244,9 @@ int main(int argc, char *argv[]) {
 //		cout << ">RESIZE frame-------" << endl;
         resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);
 //		cout << ">OVERLAP-------" << endl;
-        over = calcOverlap(res_keyframe, res_frame);
-        cout << '\r' << "Frame: " << read_frame << " [" << out_frame << "]\tOverlap: " << over << std::flush;
 
+        over = calcOverlap(&key_frame, res_frame);
+        cout << '\r' << "Frame: " << read_frame << " [" << out_frame << "]\tOverlap: " << over << std::flush;
 		//special case: overlap cannot be computed, we force it with an impossible negative value
         // TODO: check better numerically stable way to detect failed overlap detection, rather through forced value
 		if (over == -2.0){
@@ -264,6 +275,7 @@ int main(int argc, char *argv[]) {
 				}
                 read_frame ++;
                 resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);    //uses a resized version
+                
                 currBlur = calcBlur(res_frame);    //we operate over the resampled image for speed purposes
 
                 cout << '\r' << "Refining for Blur [" << n+1 << "/" << kWindow << "]\tBlur: " << currBlur << "\tBest: " << bestBlur << std::flush;
@@ -273,7 +285,8 @@ int main(int argc, char *argv[]) {
                 }
             }
             //< finally the new keyframe is the best frame from las iteration
-            keyframe = bestframe.clone();
+            key_frame.img = bestframe.clone();
+            key_frame.new_img = true;
 //            cout << " >> best frame found";
             out_frame ++;
 
@@ -290,7 +303,7 @@ int main(int argc, char *argv[]) {
             t = (double) getTickCount();
 #endif
 			cout << "..." << endl;
-            resize(keyframe, res_keyframe, cv::Size(), hResizeFactor, hResizeFactor);
+            resize(key_frame.img, key_frame.res_img, cv::Size(), hResizeFactor, hResizeFactor);
 //			cout << ">RESIZE keyframe-------" << endl;
         }
 
@@ -327,16 +340,15 @@ float calcBlur(Mat frame) {
     return stdev.val[0];
 }
 
-/*! @fn float calcOverlap(Mat img_scene, Mat img_object)
+/*! @fn float calcOverlap(struct_keyframe* key_frame, Mat img_object)
     @brief Calculates the percentage of overlapping among two frames, by estimating the Homography matrix.
-    @param
-            img_scene	Mat OpenCV matrix container of reference frame
+    @param key_frame	Structure container of reference frame, keypoints and descriptors
     @param img_object	Mat OpenCV matrix container of target frame
 	@brief retval		The normalized overlap among two given frame
 */
-float calcOverlap(Mat img_scene, Mat img_object) {
+float calcOverlap(struct_keyframe* key_frame, Mat img_object) {
 	// if any of the input images are empty, then exits with error code
-    if (! img_object.data || ! img_scene.data) {
+    if (! img_object.data || ! key_frame->res_img.data) {
         cout << " --(!) Error reading images " << std::endl;
         return - 1;
     }
@@ -346,17 +358,23 @@ float calcOverlap(Mat img_scene, Mat img_object) {
     int minHessian = 400;
     Mat descriptors_object, descriptors_scene;
     vector<KeyPoint> keypoints_object, keypoints_scene;
+    Ptr<SURF> detector = SURF::create(minHessian);
 
     // Convert to grayscale
     cvtColor(img_object, img_object, COLOR_BGR2GRAY);
-    cvtColor(img_scene, img_scene, COLOR_BGR2GRAY);
 
     // Detect keypoints
-    Ptr<SURF> detector = SURF::create(minHessian);
     detector->detectAndCompute(img_object, Mat(), keypoints_object, descriptors_object);
-    detector->detectAndCompute(img_scene, Mat(), keypoints_scene, descriptors_scene);//*/
 
-    //-- Step 3: Matching descriptor vectors using BruteForceMatcher
+    // If we have a new keyframe compute the keypoints, else reuse them
+    if(key_frame->new_img){
+        cvtColor(key_frame->res_img, key_frame->res_img, COLOR_BGR2GRAY);
+        detector->detectAndCompute(key_frame->res_img, Mat(), key_frame->keypoints, key_frame->descriptors);
+        key_frame->new_img = false;
+    }
+
+    keypoints_scene = key_frame->keypoints;
+    descriptors_scene = key_frame->descriptors;
 
 #ifdef _VERBOSE_ON_
     t = 1000 * ((double) getTickCount() - t) / getTickFrequency();
@@ -365,25 +383,21 @@ float calcOverlap(Mat img_scene, Mat img_object) {
 #endif
 
     //***************************************************************//
-    //-- Step 3: Matching descriptor vectors using GPU BruteForce matcher (instead CPU FLANN)
+    //-- Step 2: Matching descriptor vectors using Flann based matcher
     // Avg time: 2.5 ms GPU / 21 ms CPU
-    double max_dist = 0;
-    double min_dist = 100;
-
-    //	cout << ">>[OV] SURF ok-------" << endl;
+        //	cout << ">>[OV] SURF ok-------" << endl;
     vector<DMatch> matches;
 
-    BFMatcher matcher;
+    FlannBasedMatcher matcher;
     matcher.match(descriptors_object, descriptors_scene, matches);
 
-    //-- Step 4: Select only good matches
+    //-- Step 3: Select only good matches
     vector<DMatch> good_matches;
+    double min_dist = 100;
     for( int i = 0; i < matches.size(); i++ ){
         double dist = matches[i].distance;
         if( dist < min_dist )
             min_dist = dist;
-        if( dist > max_dist )
-            max_dist = dist;
     }
     for( int i = 0; i < matches.size(); i++ ){
         if( matches[i].distance <= max(2*min_dist, 0.6) ){

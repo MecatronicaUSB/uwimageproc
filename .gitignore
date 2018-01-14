@@ -1,0 +1,4 @@
+*.jpg
+*.MOV
+uwimageproc
+modules/vdstrip.cpp

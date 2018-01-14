@@ -1,0 +1,74 @@
+{ 
+    "version": "0.2.0", 
+    "configurations": [
+        {
+            "name": "(gdb) Pipe Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/${workspaceRootFolderName}",
+            "args": [
+                "-p=0.5",
+                "-k=5",
+                "-s=12",
+                "MVI_0752.MOV",
+                "vdout"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "pipeTransport": {
+                "debuggerPath": "/usr/bin/gdb",
+                "pipeProgram": "/usr/bin/ssh",
+                "pipeArgs": [],
+                "pipeCwd": ""
+            },
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+    {
+        "name": "(gdb) Launch",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "${workspaceRoot}/${workspaceRootFolderName}",
+        "args": [
+            "-p=0.5",
+            "-k=5",
+            "-s=12",
+            "MVI_0752.MOV",
+            "vdout"
+        ],
+        "stopAtEntry": false,
+        "cwd": "${workspaceRoot}",
+        "environment": [],
+        "externalConsole": true,
+        "MIMode": "gdb",
+        "setupCommands": [
+            {
+                "description": "Enable pretty-printing for gdb",
+                "text": "-enable-pretty-printing",
+                "ignoreFailures": true
+            }
+        ]
+    }]}
+    
+
+
+/*{
+        "version": "0.2.0",
+        "configurations": [
+
+            {
+                "type": "node",
+                "request": "launch",
+                "name": "Launch Program",
+                "program": "${file}"
+            }
+        ]
+    }*/
