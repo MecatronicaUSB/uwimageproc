@@ -3,7 +3,7 @@
 /* Module: 	Videostrip								                */
 /* File: 	videostrip.cpp                                          */
 /* Created:		11/12/2016                                          */
-/* Edited:		30/01/2017, 07:12 PM                                */
+/* Edited:		20/01/2018, 07:12 PM                                */
 /* Description:						                                
 	Module that extracts frames from video for 2D mosaic or 3D model reconstruction. It estimates the overlap among frames
 	by computing the homography matrix. CPU based implementation
@@ -33,7 +33,6 @@
 #include "opencv2/calib3d.hpp"
 #include <opencv2/xfeatures2d.hpp>
 
-
 /// Constant definitios
 #define TARGET_WIDTH	640        //< Resized image width
 #define TARGET_HEIGHT	480        //< Resized image height
@@ -53,11 +52,11 @@ double t;	// Timing monitor
 
 // Structure to save the reference frame data, useful to reuse keypoints and descriptors
 typedef struct {
-    bool new_img; 
-    vector<KeyPoint> keypoints;
-    Mat descriptors;
-    Mat img;
-    Mat res_img;
+    bool new_img;               // boolean value to know if it have the keypoints data stored
+    vector<KeyPoint> keypoints; // keypoints of refererence frame
+    Mat descriptors;            // Descriptors of refererence frame
+    Mat img;                    // reference frame
+    Mat res_img;                // resized frame to TARGET_WIDTH x TARGET_HEIGHT
 } struct_keyframe;
 
 // General structure index:
@@ -152,24 +151,7 @@ int main(int argc, char *argv[]) {
     string FileBase = FileName.substr(0, FileName.length() - FileType.length());
 
     //**************************************************************************
-    /* CUDA */
-    int nCuda = - 1;    //<Defines number of detected CUDA devices. By default, -1 acting as error value
-
-	// TODO: read about possible failure at runtime when calling CUDA methods in non-CUDA hardware.
-	// CHECK whether it is possible with try-catch pair
     cout << "Built with OpenCV " << CV_VERSION << endl;
-    //nCuda = cuda::getCudaEnabledDeviceCount();	// we try to detect any existing CUDA device
-    //cuda::DeviceInfo deviceInfo;
-
-    // if (nCuda > 0)
-    //     cout << "CUDA enabled devices detected: " << deviceInfo.name() << endl;
-    // else {
-    //     cout << "No CUDA device detected" << endl;
-    //     cout << "Exiting... use non-GPU version instead" << endl;
-    // }
-	// TODO: How to operate when multiple CUDA devices are detected?
-    // So far, we work with the first detected CUDA device. Maybe, add some CUDA probe mode when called
-    // cuda::setDevice(0);
     cout << "***************************************" << endl;
     cout << "Input: " << InputFile << endl;
 
@@ -215,13 +197,13 @@ int main(int argc, char *argv[]) {
     Mat bestframe, res_frame;
     struct_keyframe key_frame;
 
-    bool bImagen = false;
     float over;
     int out_frame = 0, read_frame = 0;
 
     // we use the first frame as keyframe (so far, further implementations should include cli arg to pick one by user)
-    capture.read(key_frame.img);     read_frame ++;
+    capture.read(key_frame.img);    read_frame ++;
     key_frame.new_img = true;
+
     // resizing for speed purposes
     resize(key_frame.img, key_frame.res_img, cv::Size(hResizeFactor * key_frame.img.cols, hResizeFactor * key_frame.img.rows), 0, 0,
            CV_INTER_LINEAR);
@@ -241,9 +223,7 @@ int main(int argc, char *argv[]) {
         read_frame ++;
 
         float bestBlur = 0.0, currBlur;    //we start using the current frame blur as best blur value yet
-//		cout << ">RESIZE frame-------" << endl;
         resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);
-//		cout << ">OVERLAP-------" << endl;
 
         over = calcOverlap(&key_frame, res_frame);
         cout << '\r' << "Frame: " << read_frame << " [" << out_frame << "]\tOverlap: " << over << std::flush;
@@ -254,7 +234,6 @@ int main(int argc, char *argv[]) {
 			keyframe = frame.clone();		
 	        resize(keyframe, res_keyframe, cv::Size(), hResizeFactor, hResizeFactor);*/
 			over = OVERLAP_MIN + 0.01;
-//			cout << ">FORCED-------" << endl;
 		}
 		if ((over < overlap) && (over > OVERLAP_MIN)) {
 			cout << endl;
@@ -262,7 +241,6 @@ int main(int argc, char *argv[]) {
             Start to search best frames in i+k frames, according to "blur level" estimator (based on Laplacian variance)
             We start using current frame as best frame so far
             */
-//			cout << ">REFINE-------" << endl;
             bestBlur = calcBlur(res_frame);
             bestframe = frame.clone();
             //for each frame inside the k-consecutive frame window, we refine the search
@@ -287,14 +265,11 @@ int main(int argc, char *argv[]) {
             //< finally the new keyframe is the best frame from las iteration
             key_frame.img = bestframe.clone();
             key_frame.new_img = true;
-//            cout << " >> best frame found";
             out_frame ++;
 
-//			cout << ">FOUND-------" << endl;
             OutputFileName.str("");
             OutputFileName << OutputFile << setfill('0') << setw(4) << out_frame << ".jpg";
-//            cout << "  >> storing best frame... ";
-//			cout << ">SAVE-------" << endl;
+
             imwrite(OutputFileName.str(), bestframe);
 
 #ifdef _VERBOSE_ON_
@@ -304,7 +279,6 @@ int main(int argc, char *argv[]) {
 #endif
 			cout << "..." << endl;
             resize(key_frame.img, key_frame.res_img, cv::Size(), hResizeFactor, hResizeFactor);
-//			cout << ">RESIZE keyframe-------" << endl;
         }
 
         //get the input from the keyboard
@@ -352,7 +326,6 @@ float calcOverlap(struct_keyframe* key_frame, Mat img_object) {
         cout << " --(!) Error reading images " << std::endl;
         return - 1;
     }
-//	cout << ">>[OV] Data ok-------" << endl;
 
     //-- Step 1: Detect the keypoints using SURF Detector
     int minHessian = 400;
@@ -366,13 +339,13 @@ float calcOverlap(struct_keyframe* key_frame, Mat img_object) {
     // Detect keypoints
     detector->detectAndCompute(img_object, Mat(), keypoints_object, descriptors_object);
 
-    // If we have a new keyframe compute the keypoints, else reuse them
+    // If we have a new keyframe compute the keypoints
     if(key_frame->new_img){
         cvtColor(key_frame->res_img, key_frame->res_img, COLOR_BGR2GRAY);
         detector->detectAndCompute(key_frame->res_img, Mat(), key_frame->keypoints, key_frame->descriptors);
         key_frame->new_img = false;
     }
-
+    // else, reuse them from key_frame structure
     keypoints_scene = key_frame->keypoints;
     descriptors_scene = key_frame->descriptors;
 
@@ -391,7 +364,7 @@ float calcOverlap(struct_keyframe* key_frame, Mat img_object) {
     FlannBasedMatcher matcher;
     matcher.match(descriptors_object, descriptors_scene, matches);
 
-    //-- Step 3: Select only good matches
+    //-- Step 3: Select only good matches based on euclidean distance between descriptors
     vector<DMatch> good_matches;
     double min_dist = 100;
     for( int i = 0; i < matches.size(); i++ ){
@@ -411,7 +384,6 @@ float calcOverlap(struct_keyframe* key_frame, Mat img_object) {
     t = (double) getTickCount();
 #endif
 
-//	cout << ">>[OV] MATCHER ok-------" << endl;
 
     //***************************************************************//
     //we must check if found H matrix is good enough. It requires at least 4 points
