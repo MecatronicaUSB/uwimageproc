@@ -13,7 +13,7 @@
 /********************************************************************/
 /* Created by:                                                      */
 /* Jose Cappelletto - cappelletto@usb.ve			                */
-/* Collaborators: <none>											*/
+/* Collaborators: Victor Garcia											*/
 /********************************************************************/
 
 ///Basic C and C++ libraries
