@@ -38,8 +38,15 @@ if(CMAKE_VERSION VERSION_LESS "2.8.11")
   include_directories(${OpenCV_INCLUDE_DIRS})
 endif()
 
-# Declare the executable target built from your sources
-add_executable(videostrip videostrip.cpp)
-
-# Link your application with OpenCV libraries
+ # Declare the executable target built from your sources
+if(CUDA_FOUND)
+  add_executable(videostrip videostrip.cpp)
+  # Link your application with OpenCV libraries
 target_link_libraries(videostrip ${OpenCV_LIBS} ${CUDA_LIBRARIES})
+else()
+  add_executable(videostrip videostrip_cpu.cpp)
+  # Link your application with OpenCV libraries
+  target_link_libraries(videostrip ${OpenCV_LIBS})
+endif(CUDA_FOUND)
+
+
