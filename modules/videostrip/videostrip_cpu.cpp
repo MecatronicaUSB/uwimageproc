@@ -359,22 +359,19 @@ float calcOverlap(struct_keyframe* key_frame, Mat img_object) {
     //-- Step 2: Matching descriptor vectors using Flann based matcher
     // Avg time: 2.5 ms GPU / 21 ms CPU
         //	cout << ">>[OV] SURF ok-------" << endl;
-    vector<DMatch> matches;
 
-    FlannBasedMatcher matcher;
-    matcher.match(descriptors_object, descriptors_scene, matches);
+    Ptr<DescriptorMatcher> matcher = BFMatcher::create();
+    vector<vector<DMatch> > matches;
+    matcher->knnMatch(descriptors_object, descriptors_scene, matches, 2);
 
     //-- Step 3: Select only good matches based on euclidean distance between descriptors
-    vector<DMatch> good_matches;
-    double min_dist = 100;
-    for( int i = 0; i < matches.size(); i++ ){
-        double dist = matches[i].distance;
-        if( dist < min_dist )
-            min_dist = dist;
-    }
-    for( int i = 0; i < matches.size(); i++ ){
-        if( matches[i].distance <= max(2*min_dist, 0.6) ){
-            good_matches.push_back( matches[i]);
+    std::vector<DMatch> good_matches;
+    for (int k = 0; k < std::min(keypoints_object.size() - 1, matches.size()); k ++) {
+        if ((matches[k][0].distance < 0.8 * (matches[k][1].distance)) &&
+            ((int) matches[k].size() <= 2 && (int) matches[k].size() > 0)) {
+            // take the first result only if its distance is smaller than 0.6*second_best_dist
+            // that means this descriptor is ignored if the second distance is bigger or of similar
+            good_matches.push_back(matches[k][0]);
         }
     }
 
