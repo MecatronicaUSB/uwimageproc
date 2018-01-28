@@ -1,30 +1,9 @@
-#/********************************************************************/
-#/* File: videostrip.cpp                                             */
-#/* Last Edition: 06/06/2017, 05:44 PM.                              */
-#/********************************************************************/
-#/* Created by:                                                      */
-#/* Jose Cappelletto                                                 */
-#/* Collaborators:													*/
-#/* <none>															*/
-#/********************************************************************/
-#/* Project: imageproc-scripts						                */
-#/* File: 	list_images.sh							                */
-#/********************************************************************/
-
-## @file   list_images.sh
-## @brief  Export a list of image files in OpenCV XML format
-##
-## @param  -i path to files to be searched
-## @param  -f image file extension to be searched
-## @param  -o output file, where the list of files will be stored in XML format
-## @return Exit code, 1 on success
-# -----------------------------------------------------------------------------
-
-
 #!/bin/bash
-# Created 2015-10-26
+# 2015-10-26
 # List all image files on specified path, and store it in OpenCV XML compatible file format
-# v 0.2
+# Improved argument parsing
+# v 0.3
+# Created by: J. Cappelletto - cappelletto [at] usb [dot] ve
 
 # if no argument is provided, then print basic usage
 if [ -z "$1" ]; then 
@@ -34,6 +13,7 @@ if [ -z "$1" ]; then
 	echo "Example: list_images -i /directory/with/images -o List.txt -f jpg"
 	echo -e '\t' "This example will search for 'jpg' files contained at '/directory/with/images' and will store"
 	echo -e '\t' "as an OpenCV XML compatible file list"
+	# TODO: Check if XML format is still valid for OpenCV 3+
 	echo -e '\t' "Visit http://docs.opencv.org/2.4/doc/tutorials/calib3d/camera_calibration/camera_calibration.html#results"
 	exit
 fi
@@ -42,24 +22,19 @@ fi
 # Parsing method extracted from http://wiki.bash-hackers.org/howto/getopts_tutorial
 #######################################################################################################################
 
-# Here we define the default values for main variables
-SEARCH_PATH='.'
-FILE_EXT='jpg'
-OUTPUT_FILE='ImageList.xml'
-CREATE_FOLDER=false
+SEARCH_PATH='.'		# if no path is provided, then default is current folder
+FILE_EXT='jpg'		# Default extension: .jpg (beware, as bash is case sensitive)
+OUTPUT_FILE='ImageList.xml'	# Default output file
 
 while getopts "i:o:f:" opt; do
   case $opt in
     i)
-	# if defined, new search path
 	SEARCH_PATH=$OPTARG 
 	;;
     o)
-	# if defined, replaces output file name
 	OUTPUT_FILE=$OPTARG 
 	;;
     f)
-	# if defined, replaces extension of image fies to be searched for
 	FILE_EXT=$OPTARG 
 	;;
     \?)
@@ -73,7 +48,6 @@ while getopts "i:o:f:" opt; do
   esac
 done
 
-# prints current search parameters
 echo -e "Search path:\t $SEARCH_PATH" >&2
 echo -e "Ouput file:\t $OUTPUT_FILE" >&2
 echo -e "File extension:\t $FILE_EXT" >&2
@@ -82,13 +56,12 @@ FILE_EXT=*.$FILE_EXT
 
 shopt -s extglob
 
-# print OpenCV XML file header
 $(echo '<?xml version="1.0"?>' > $OUTPUT_FILE)
 $(echo '<opencv_storage>' >> $OUTPUT_FILE)
 $(echo '<images>' >> $OUTPUT_FILE)
-# list all files matching search criteria (path and extension)
+
 $(ls -R -1 -d $SEARCH_PATH/$FILE_EXT >> $OUTPUT_FILE)
-# close XML tags
+
 $(echo '</images>' >> $OUTPUT_FILE)
 $(echo '</opencv_storage>' >> $OUTPUT_FILE)
 		

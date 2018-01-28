@@ -8,4 +8,8 @@ x Test post-commit hook from Github to Trac
 * Push base repo module, with proposed directory hierarchy (-check among other projects)
 x Clone repo into bitbucket por private developments
 - Choose OS license
-- 
+- Create modules:
+	. Dehaze
+	. ACLAHE
+	. SCB
+	.  
