@@ -2,9 +2,10 @@
 # 2015-10-26
 # List all image files on specified path, and store it in OpenCV XML compatible file format
 # Improved argument parsing
-# v 0.2
+# v 0.3
+# Created by: J. Cappelletto - cappelletto [at] usb [dot] ve
 
-# if no argument is provided, the print basic usage
+# if no argument is provided, then print basic usage
 if [ -z "$1" ]; then 
 	echo Usage: \n
 	echo list_images -i search_path [-o output_file] [-f file_extension]
@@ -12,6 +13,7 @@ if [ -z "$1" ]; then
 	echo "Example: list_images -i /directory/with/images -o List.txt -f jpg"
 	echo -e '\t' "This example will search for 'jpg' files contained at '/directory/with/images' and will store"
 	echo -e '\t' "as an OpenCV XML compatible file list"
+	# TODO: Check if XML format is still valid for OpenCV 3+
 	echo -e '\t' "Visit http://docs.opencv.org/2.4/doc/tutorials/calib3d/camera_calibration/camera_calibration.html#results"
 	exit
 fi
@@ -20,10 +22,9 @@ fi
 # Parsing method extracted from http://wiki.bash-hackers.org/howto/getopts_tutorial
 #######################################################################################################################
 
-SEARCH_PATH='.'
-FILE_EXT='jpg'
-OUTPUT_FILE='ImageList.xml'
-CREATE_FOLDER=false
+SEARCH_PATH='.'		# if no path is provided, then default is current folder
+FILE_EXT='jpg'		# Default extension: .jpg (beware, as bash is case sensitive)
+OUTPUT_FILE='ImageList.xml'	# Default output file
 
 while getopts "i:o:f:" opt; do
   case $opt in

@@ -92,6 +92,7 @@ for file in $FILE_LIST; do
 		OUTPUT=$FULL_PATH"/$ID/"$ID"_%4d."$OUTPUT_FMT
 	fi
 	
+	# TODO: maybe we could check if ffmpeg is installed instead of avconv. Or provide a feature with smart selection between both 	
 	$(avconv -i $INPUT -filter:v yadif -r $FRAME_RATE -f image2 -q 1.0 $OUTPUT)
 	
 done
