@@ -1,99 +1,108 @@
 /********************************************************************/
-/* File: template.cpp                                                 */
-/* Last Edition: 30/01/2017, 07:12 PM.                              */
-/********************************************************************/
-/* Programmed by:                                                   */
-/* Jose Cappelletto                                                 */
-/********************************************************************/
-/* Project: imageproc								                */
-/* File: 	template.cpp							                */
+/* Project: uwimageproc								                */
+/* Module: 	template								                */
+/* File: 	sample.cpp                                              */
+/* Created:		30/01/2017                                          */
+/* Edited:		20/01/2018, 07:12 PM                                */
+/* Description:						                                
+	Module template, including basic dependencies and CLI argument
+parsing*/
 /********************************************************************/
 
-//basic c and c++ libraries
+/********************************************************************/
+/* Created by:                                                      */
+/* Jose Cappelletto - cappelletto@usb.ve			                */
+/* Collaborators:                                                   */
+/* Victor Garcia - victorygarciac@gmail.com							*/
+/********************************************************************/
+
+///Basic C and C++ libraries
 #include <iostream>
+#include <iomanip>
 #include <sstream>
 #include <fstream>
-#include <unistd.h>
 #include <stdlib.h>
-#include <math.h>
 
-/*
-	Usage: Template -i input [-r argument -o output]
-*/
+/// OpenCV libraries. May need review for the final release
+#include <opencv2/core.hpp>
 
+// #define _VERBOSE_ON_
+// C++ namespaces
+using namespace cv;
+//using namespace cv::cuda;
 using namespace std;
 
-void printUsage(){
-        cout << "'Template' for tool that provides a basic skeleton for modules in 'imageproc'" << endl;
-        cout << "\tUsage: Template -i input [-r argument1 -o output]" << endl;
-        cout << "\t-i\tModule input file" << endl;
-        cout << "\t-h\tShow this help message" << endl;
-        cout << "\t-r\t[optional] a random argument for testing purporses" << endl;
-	    cout << "\t-o\t[optional] Output file (if not specified, a file will be created with from input filename)" << endl;
-        cout <<  endl << "\tExample:" << endl;
-        cout << "\t$ Template -i input.dat -o output.dat -r 0" << endl;
-        cout << "\tThis will open 'input.dat' file, do some stuff and write output into 'output.dat' file" << endl << endl;
-}
+/*!
+	@fn		int main(int argc, char* argv[])
+	@brief	Main function
+*/
+int main(int argc, char *argv[]) {
 
-//********************************
-int main(int argc, char* argv[]){
+//*********************************************************************************
+/*	PARSER section */
+/*  Uses built-in OpenCV parsing method cv::CommandLineParser. It requires a string containing the arguments to be parsed from
+	the command line. Further details can be obtained from opencv webpage
+*/
+    String keys =
+            "{@input |<none>  | Input video path}"    // input image is the first argument (positional)
+                    "{@output |<none> | Prefix for output file}" // output prefix is the second argument (positional)
+                    "{p      |0.95  | A float number (0.0 to 1.0) with a default value}"
+                    "{k      |      | An intenger number}"
+                    "{help h usage ?  |       | show this help message}";      // optional, show help optional
 
-	// If not enough arguments or '-h' argument is called, the print usage instructions
-	if (argc<3 || (string (argv[1]) == "-h")){
-		printUsage();
-		return 0;
-	}
-	//read the arguments
-	string argument, argval;
-	string InputFile; //strings storing parameters
-	ostringstream OutputFile;
-	int opt = 0;
-	float rand_arg;
+    CommandLineParser cvParser(argc, argv, keys);
+    cvParser.about("sample module v0.2");	//adds "about" information to the parser method
 
-	while ((opt = getopt(argc, argv, "i:r:o:")) != -1) {
-	switch(opt) {
-		case 'i':
-			InputFile = string (optarg);
-			break;
-		case 'r':
-			rand_arg = atof (optarg);
-			break;
-		case 'o':
-			OutputFile << optarg;
-			break;
-		case '?':
-			/* Case when user enters the command as
-			* $ ./cmd_exe -i
-			*/
-			if (optopt == 'i') {
-				cout << "Missing mandatory input option" << endl;
-			}
-			else if (optopt == 'o') {
-				cout << "Missing mandatory output option" << endl;
-			} 
-			else {
-				cout << "Invalid option received" << endl;
-				}
-			break;
-		}
-	}
+	//if the number of arguments is lower than 3, or contains "help" keyword, then we show the help
+	if (argc < 3 || cvParser.has("help")) {
+        cout << "This is a sample module to be employed as template for functional modules" << endl;
+        cout << "Receives some mandatory and other optional arguments from the command line" << endl;
+        cvParser.printMessage();
+        cout << endl << "\tExample:" << endl;
+        cout << "\t$ template -p=0.6 -k=5 input.avi vdout_" << endl;
+        cout <<
+        "\tThis will open 'input.avi' file, asign p=0.6 and k=5, and set output string to 'vdout_" << endl << endl;
+        return 0;
+    }
 
-	// Example of how to parse input file name
-	//gets the path of the input source
-	string FileName = InputFile.substr(InputFile.find_last_of("/")+1);
-	string BasePath = InputFile.substr(0,InputFile.length() - FileName.length());
-	//determines the filetype
-	string FileType = InputFile.substr(InputFile.find_last_of("."));
-	string FileBase = FileName.substr(0,FileName.length() - FileType.length());
+    String InputFile = cvParser.get<cv::String>(0);		//String containing the input file path+name from cvParser function
+    String OutputFile = cvParser.get<cv::String>(1);	//String containing the output file template from cvParser function
+    ostringstream OutputFileName;						// output string that will contain the desired output file name
 
-	cout << "Input: " << InputFile << endl;
-	cout << "Path:  " << BasePath << endl;
-	cout << "File:  " << FileName << endl;
-	cout << "Type:  " << FileType << endl;
-	cout << "Base:  " << FileBase << endl;
-	cout << "Output:" << OutputFile.str().c_str() << endl;
+    int kWindow = cvParser.get<int>("k");		// gets argument -k=WW, where WW is the size of the search window for the best frame 
+    float overlap = cvParser.get<float>("p");	// gets argument -p=OO, where OO is the desired overlap among frames
 
-//*****************************************************************************
+	// Check if occurred any error during parsing process
+    if (! cvParser.check()) {
+        cvParser.printErrors();
+        return -1;
+    }
+
+    //************************************************************************
+    /* FILENAME */
+    //gets the path of the input source
+    string FileName = InputFile.substr(InputFile.find_last_of("/") + 1);
+    string BasePath = InputFile.substr(0, InputFile.length() - FileName.length());
+
+    //determines the input file extension
+    string FileType;
+    if (InputFile.find_last_of(".") == - 1) // DOT (.) not found, so filename doesn't contain extension
+        FileType = "";
+    else
+        FileType = InputFile.substr();
+
+    // now we build the FileBase from input FileName
+    string FileBase = FileName.substr(0, FileName.length() - FileType.length());
+
+    //**************************************************************************
+    cout << "Built with OpenCV " << CV_VERSION << endl;
+    cout << "***************************************" << endl;
+    cout << "Input: " << InputFile << endl;
+    cout << "Output: " << OutputFile << endl;
+    cout << "k: " << kWindow  << endl;
+    cout << "p: " << overlap << endl;
+
+    //**************************************************************************
 	return 0;
 }																																																											
 
