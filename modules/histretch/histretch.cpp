@@ -22,7 +22,7 @@
 #include <iomanip>
 #include <sstream>
 #include <fstream>
-#include <stdlib.h>
+//#include <stdlib.h>
 
 /// OpenCV libraries. May need review for the final release
 #include <opencv2/core.hpp>
@@ -105,20 +105,36 @@ int main(int argc, char *argv[]) {
 
     //**************************************************************************
 
-    Mat src, dst;
+    Mat src, dst, srcBGR[3], dstBGR[3];
     const char* src_window = "Source image";
     const char* dst_window = "Destination image";
 
-    src = imread (InputFile,3);
+    src = imread (InputFile,CV_LOAD_IMAGE_COLOR);
+    //split source image into Blue-Green-Red channels (OpenCV uses BGR order)
 
-    cvtColor (src,src, COLOR_BGR2GRAY);
-
-    equalizeHist (src, dst);
+    split(src, srcBGR);
 
     namedWindow( src_window, WINDOW_AUTOSIZE);
     namedWindow( dst_window, WINDOW_AUTOSIZE);
 
     imshow (src_window, src);
+
+    cvtColor (src,src, COLOR_BGR2GRAY);
+
+    equalizeHist (srcBGR[0], dstBGR[0]);
+    equalizeHist (srcBGR[1], dstBGR[1]);
+    equalizeHist (srcBGR[2], dstBGR[2]);
+
+/*
+    imshow ("b", srcBGR[0]);
+    imshow ("G", srcBGR[1]);
+    imshow ("r", srcBGR[2]);
+
+    imshow ("bo", dstBGR[0]);
+    imshow ("Go", dstBGR[1]);
+    imshow ("ro", dstBGR[2]);
+*/
+    merge (dstBGR,3,dst);
     imshow (dst_window, dst);
 
     imwrite (OutputFile, dst);
@@ -126,4 +142,4 @@ int main(int argc, char *argv[]) {
     waitKey(0);
 
 	return 0;
-}																																																											
+}
