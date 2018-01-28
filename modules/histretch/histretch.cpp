@@ -17,6 +17,8 @@
 /* Armando Longart                      							*/
 /********************************************************************/
 
+#define ABOUT_STRING "Histogram Stretching tool with channel selection v0.3"
+
 ///Basic C and C++ libraries
 #include <iostream>
 #include <iomanip>
@@ -52,17 +54,25 @@ int main(int argc, char *argv[]) {
                     "{help h usage ?  |       | show this help message}";      // optional, show help optional
 
     CommandLineParser cvParser(argc, argv, keys);
-    cvParser.about("Histogram stretching module v0.1");	//adds "about" information to the parser method
+    cvParser.about(ABOUT_STRING);	//adds "about" information to the parser method
 
 	//if the number of arguments is lower than 3, or contains "help" keyword, then we show the help
-	if (argc < 2 || cvParser.has("help")) {
-        cout << "C++ implementation of Histogram Stretching of input image" << endl;
+	if (argc < 3 || cvParser.has("help")) {
+        cout << "C++ implementation of Histogram Stretching for specific channels of input image" << endl;
         cout << "Based on A. Longart Python prototype and OpenCV online documentation" << endl;
         cvParser.printMessage();
+        cout << "Argument 'c=<channels>' is a string containing an ordered list of desired channels to be stretched" << endl;
+        cout << "Histogram stretching is applied one at time, and then converted back to RGB colour space" << endl;
+        cout << "Complete options are:" << endl;
+        cout << "\t-c=R|G|B\tfor RGB space" << endl;
+        cout << "\t-c=H|S|V\tfor HSV space" << endl;
+        cout << "\t-c=h|s|l\tfor HSL space" << endl;
+        cout << "\t-c=L|a|b\tfor Lab space" << endl;
+        cout << "\t-c=Y|C|X\tfor YCrCb space" << endl;
         cout << endl << "\tExample:" << endl;
-        cout << "\t$ histretch -c v input.jpg output.jpg" << endl;
+        cout << "\t$ histretch -c=HV input.jpg output.jpg" << endl;
         cout <<
-        "\tThis will open 'input.jpg' file, operate on the 'v' channel, and write it in 'output.jpg'" << endl << endl;
+        "\tThis will open 'input.jpg' file, operate on the 'H' and 'V' channels, and write it in 'output.jpg'" << endl << endl;
         return 0;
     }
 
@@ -83,7 +93,7 @@ int main(int argc, char *argv[]) {
     //************************************************************************
     /* FILENAME */
     //gets the path of the input source
-    string FileName = InputFile.substr(InputFile.find_last_of("/") + 1);
+/*    string FileName = InputFile.substr(InputFile.find_last_of("/") + 1);
     string BasePath = InputFile.substr(0, InputFile.length() - FileName.length());
 
     //determines the input file extension
@@ -94,9 +104,10 @@ int main(int argc, char *argv[]) {
         FileType = InputFile.substr();
 
     // now we build the FileBase from input FileName
-    string FileBase = FileName.substr(0, FileName.length() - FileType.length());
+    string FileBase = FileName.substr(0, FileName.length() - FileType.length());//*/
 
     //**************************************************************************
+    cout << ABOUT_STRING << endl;
     cout << "Built with OpenCV " << CV_VERSION << endl;
     cout << "***************************************" << endl;
     cout << "Input: " << InputFile << endl;
@@ -105,7 +116,7 @@ int main(int argc, char *argv[]) {
 
     //**************************************************************************
 
-    Mat src, dst, srcBGR[3], dstBGR[3];
+    Mat src, dst, srcBGR[3], dstBGR[3], dstHSV[3], dstHLS[3], dstLab[3], dstYCC[3];
     const char* src_window = "Source image";
     const char* dst_window = "Destination image";
 
@@ -114,12 +125,26 @@ int main(int argc, char *argv[]) {
 
     split(src, srcBGR);
 
+    // Convertion to HSV space
+/*    cvtColor (src, dst, COLOR_BGR2HSV);
+    split(dst, dstHSV);
+
+    // Convertion to HLS space
+    cvtColor (src, src, COLOR_BGR2HLS);
+    split(dst, dstHLS);
+
+    // Convertion to L.a.b space
+    cvtColor (src, dst, COLOR_BGR2Lab);
+    split(dst, dstLab);
+
+    // Convertion to YCrCb space (JPEG)
+    cvtColor (src, dst, COLOR_BGR2YCrCb);
+    split(dst, dstYCC);//*/
+
     namedWindow( src_window, WINDOW_AUTOSIZE);
     namedWindow( dst_window, WINDOW_AUTOSIZE);
 
     imshow (src_window, src);
-
-    cvtColor (src,src, COLOR_BGR2GRAY);
 
     equalizeHist (srcBGR[0], dstBGR[0]);
     equalizeHist (srcBGR[1], dstBGR[1]);
