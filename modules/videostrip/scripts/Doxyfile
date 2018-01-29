@@ -771,7 +771,11 @@ WARN_LOGFILE           =
 # spaces. See also FILE_PATTERNS and EXTENSION_MAPPING
 # Note: If this tag is empty the current directory is searched.
 
+<<<<<<< HEAD:modules/videostrip/Doxyfile
 INPUT                  =	videostrip.cpp videostrip_cpu.cpp
+=======
+INPUT                  =	../videostrip.cpp
+>>>>>>> 3751a9a8d6ce53bb8a39d208a24e1708abbb38ef:modules/videostrip/scripts/Doxyfile
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
