@@ -423,7 +423,7 @@ float calcOverlap(keyframe* kframe, Mat img_object) {
     vector<vector<DMatch> > matches;
     matcher_gpu->knnMatch(descriptors_object, descriptors_scene, matches_gpu, 2);
 #else
-    Ptr<DescriptorMatcher> matcher = BFMatcher::create();
+    Ptr<BFMatcher> matcher = BFMatcher::create();
     vector<vector<DMatch> > matches;
     matcher->knnMatch(descriptors_object, descriptors_scene, matches, 2);
 #endif

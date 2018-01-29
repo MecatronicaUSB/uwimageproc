@@ -7,7 +7,11 @@ project(video_strip_project)
 # Find OpenCV, you may need to set OpenCV_DIR variable
 # to the absolute path to the directory containing OpenCVConfig.cmake file
 # via the command line or GUI
-find_package(OpenCV REQUIRED)
+
+find_package(OpenCV REQUIRED
+NO_MODULE
+PATHS /usr/local
+NO_DEFAULT_PATH)
 
 # If the package has been found, several variables will
 # be set, you can find the full list with descriptions
