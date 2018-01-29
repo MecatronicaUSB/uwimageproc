@@ -8,10 +8,13 @@ project(video_strip_project)
 # to the absolute path to the directory containing OpenCVConfig.cmake file
 # via the command line or GUI
 find_package(OpenCV REQUIRED)
+
 # If the package has been found, several variables will
 # be set, you can find the full list with descriptions
 # in the OpenCVConfig.cmake file.
 # Print some message showing some of them
+# At this level, it should be useful to check minimum required version or exact version
+# So far, there are still some issues with OpenCV installations included in ROS
 message(STATUS "OpenCV library status:")
 message(STATUS "    version: ${OpenCV_VERSION}")
 message(STATUS "    libraries: ${OpenCV_LIBS}")
@@ -42,12 +45,15 @@ endif()
 if(CUDA_FOUND)
   option(USE_GPU "use cpu" ON)
   configure_file(scripts/videostrip.cpp.in videostrip.cpp @ONLY)
+  message(STATUS "Configuring for GPU version.")
   add_executable(videostrip videostrip.cpp)
   # Link your application with OpenCV libraries
 target_link_libraries(videostrip ${OpenCV_LIBS} ${CUDA_LIBRARIES})
 else()
   option(USE_GPU "use cpu" OFF)
   configure_file(scripts/videostrip.cpp.in videostrip.cpp @ONLY)
+  message(STATUS "Configuring for non-GPU version.")
+  message(STATUS "	Expect a slower speed...")
   add_executable(videostrip videostrip.cpp)
   # Link your application with OpenCV libraries
   target_link_libraries(videostrip ${OpenCV_LIBS})
