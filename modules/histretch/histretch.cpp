@@ -17,14 +17,12 @@
 /* Armando Longart                      							*/
 /********************************************************************/
 
-#define ABOUT_STRING "Histogram Stretching tool with channel selection v0.3"
+#define ABOUT_STRING "Histogram Stretching tool with channel selection v0.4"
 
 ///Basic C and C++ libraries
 #include <iostream>
 #include <iomanip>
 #include <sstream>
-#include <fstream>
-//#include <stdlib.h>
 
 /// OpenCV libraries. May need review for the final release
 #include <opencv2/core.hpp>
@@ -119,36 +117,132 @@ int main(int argc, char *argv[]) {
     Mat src, dst, srcBGR[3], dstBGR[3], dstHSV[3], dstHLS[3], dstLab[3], dstYCC[3];
     const char* src_window = "Source image";
     const char* dst_window = "Destination image";
+    int curColSpace = COLOR_RGB2BGR; // default colour space: BGR
 
     src = imread (InputFile,CV_LOAD_IMAGE_COLOR);
     //split source image into Blue-Green-Red channels (OpenCV uses BGR order)
+    //split(src, srcBGR);
 
-    split(src, srcBGR);
+    int num_convert = cChannel.length();
 
-    // Convertion to HSV space
-/*    cvtColor (src, dst, COLOR_BGR2HSV);
+    namedWindow( src_window, WINDOW_AUTOSIZE);
+    imshow (src_window, src);
+
+    cout << "Applying " << num_convert << " histretch" << endl;
+
+    // Now, according to parameters provided at CLI calling time, we must split and process the image
+    for (int nc=0; nc<num_convert; nc++)
+    {
+        char c = cChannel[nc];
+        cout << "\tChannel[" << nc << "]: " << c << endl;
+        switch (c)
+        {
+            case 'B':   // stretch Blue  channel of RGB space
+                // at this point the data is supposed to be already in BGR
+                split (src, srcBGR);
+                // then, we operate in the RED channel
+                equalizeHist (srcBGR[0], srcBGR[0]);
+                merge (srcBGR, 3, src);
+                break;
+            case 'G':   // stretch Green channel of RGB space
+                // at this point the data is supposed to be already in BGR
+                split (src, srcBGR);
+                // then, we operate in the RED channel
+                equalizeHist (srcBGR[1], srcBGR[1]);
+                merge (srcBGR, 3, src);
+                break;
+            case 'R':   // stretch Red  channel of RGB space
+                // at this point the data is supposed to be already in BGR
+                split (src, srcBGR);
+                // then, we operate in the RED channel
+                equalizeHist (srcBGR[2], srcBGR[2]);
+                merge (srcBGR, 3, src);
+                break;
+
+            case 'H':   // stretch Hue  channel of HSV space
+                // convert to HSV
+                cvtColor(src,dst,COLOR_BGR2HSV);
+                // split channels
+                split (dst, dstHSV);
+                // then, we operate in the Hue channel
+                equalizeHist (dstHSV[0], dstHSV[0]);
+                // merge back into a single matrix
+                merge (dstHSV, 3, dst);
+                // and convert back to BGR
+                cvtColor(dst,src,COLOR_HSV2BGR);
+                break;
+            case 'S':   // stretch Saturation channel of HSV space
+                // convert to HSV
+                cvtColor(src,dst,COLOR_BGR2HSV);
+                // split channels
+                split (dst, dstHSV);
+                // then, we operate in the Sat channel
+                equalizeHist (dstHSV[1], dstHSV[1]);
+                // merge back into a single matrix
+                merge (dstHSV, 3, dst);
+                // and convert back to BGR
+                cvtColor(dst,src,COLOR_HSV2BGR);
+                break;
+            case 'V':   // stretch Value channel of HSV space
+                // convert to HSV
+                cvtColor(src,dst,COLOR_BGR2HSV);
+                // split channels
+                split (dst, dstHSV);
+                // then, we operate in the Val channel
+                equalizeHist (dstHSV[2], dstHSV[2]);
+                // merge back into a single matrix
+                merge (dstHSV, 3, dst);
+                // and convert back to BGR
+                cvtColor(dst,src,COLOR_HSV2BGR);
+                break;
+
+            case 'h':
+//                break;
+            case 's':
+//                break;
+            case 'l':
+                cout << "'hsl' not implemented yet..." << endl;
+                break;
+
+            case 'L':
+//                break;
+            case 'a':
+//                break;
+            case 'b':
+                cout << "'L.a.b.' not implemented yet..." << endl;
+                break;
+
+            case 'Y':
+//                break;
+            case 'C':
+//                break;
+            case 'X':
+                cout << "'YCrCb' not implemented yet..." << endl;
+                break;
+
+            default:
+                cout << "Option " << c << " not recognized, skipping..." << endl;
+                break;
+        }
+    }
+/*
+    // Conversion to HSV space
+    cvtColor (src, dst, COLOR_BGR2HSV);
     split(dst, dstHSV);
 
-    // Convertion to HLS space
+    // Conversion to HLS space
     cvtColor (src, src, COLOR_BGR2HLS);
     split(dst, dstHLS);
 
-    // Convertion to L.a.b space
+    // Conversion to L.a.b space
     cvtColor (src, dst, COLOR_BGR2Lab);
     split(dst, dstLab);
 
-    // Convertion to YCrCb space (JPEG)
+    // Conversion to YCrCb space (JPEG)
     cvtColor (src, dst, COLOR_BGR2YCrCb);
     split(dst, dstYCC);//*/
 
-    namedWindow( src_window, WINDOW_AUTOSIZE);
     namedWindow( dst_window, WINDOW_AUTOSIZE);
-
-    imshow (src_window, src);
-
-    equalizeHist (srcBGR[0], dstBGR[0]);
-    equalizeHist (srcBGR[1], dstBGR[1]);
-    equalizeHist (srcBGR[2], dstBGR[2]);
 
 /*
     imshow ("b", srcBGR[0]);
@@ -159,10 +253,11 @@ int main(int argc, char *argv[]) {
     imshow ("Go", dstBGR[1]);
     imshow ("ro", dstBGR[2]);
 */
-    merge (dstBGR,3,dst);
-    imshow (dst_window, dst);
 
-    imwrite (OutputFile, dst);
+/*    merge (dstBGR,3,dst);*/
+    imshow (dst_window, src);
+
+    imwrite (OutputFile, src);
 
     waitKey(0);
 
