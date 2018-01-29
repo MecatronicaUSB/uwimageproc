@@ -13,7 +13,8 @@
 /********************************************************************/
 /* Created by:                                                      */
 /* Jose Cappelletto - cappelletto@usb.ve			                */
-/* Collaborators: <none>											*/
+/* Collaborators:                                                   */
+/* Victor Garcia - victorygarciac@gmail.com                         */
 /********************************************************************/
 
 ///Basic C and C++ libraries
@@ -32,6 +33,8 @@
 #include <opencv2/features2d.hpp>
 #include "opencv2/calib3d.hpp"
 #include <opencv2/xfeatures2d.hpp>
+
+//#cmakedefine USE_GPU
 
 /// CUDA specific libraries
 #ifdef USE_GPU
@@ -65,7 +68,7 @@ typedef struct {
     Mat descriptors;            // Descriptors of refererence frame
     Mat img;                    // reference frame
     Mat res_img;                // resized frame to TARGET_WIDTH x TARGET_HEIGHT
-} struct_keyframe;
+} keyframe;
 
 // General structure index:
 //**** 1- Parse arguments from CLI
@@ -80,7 +83,7 @@ typedef struct {
 //****	5.5 Repeat from 5
 
 // See description in function definition
-float calcOverlap(struct_keyframe* key_frame, Mat image_object);
+float calcOverlap(keyframe* kframe, Mat image_object);
 // See description in function definition
 float calcBlur(Mat frame);
 
@@ -159,27 +162,29 @@ int main(int argc, char *argv[]) {
     string FileBase = FileName.substr(0, FileName.length() - FileType.length());
 
     //**************************************************************************
+    int nCuda = - 1;    //<Defines number of detected CUDA devices. By default, -1 acting as error value
+    cout << "Built with OpenCV " << CV_VERSION << endl;
 #ifdef USE_GPU
     /* CUDA */
-    int nCuda = - 1;    //<Defines number of detected CUDA devices. By default, -1 acting as error value
     // TODO: read about possible failure at runtime when calling CUDA methods in non-CUDA hardware.
     // CHECK whether it is possible with try-catch pair
-    cout << "Built with OpenCV " << CV_VERSION << endl;
     nCuda = cuda::getCudaEnabledDeviceCount();	// we try to detect any existing CUDA device
     cuda::DeviceInfo deviceInfo;
 
     if (nCuda > 0)
         cout << "CUDA enabled devices detected: " << deviceInfo.name() << endl;
+        cuda::setDevice(0);
     else {
+#undef USE_GPU
         cout << "No CUDA device detected" << endl;
         cout << "Exiting... use non-GPU version instead" << endl;
     }
+#endif
     // TODO: How to operate when multiple CUDA devices are detected?
     // So far, we work with the first detected CUDA device. Maybe, add some CUDA probe mode when called
-    cuda::setDevice(0);
+
     cout << "***************************************" << endl;
     cout << "Input: " << InputFile << endl;
-#endif
 
     //**************************************************************************
     /* VIDEO INPUT */
@@ -221,21 +226,22 @@ int main(int argc, char *argv[]) {
     // Next, we start reading frames from the input video
     Mat frame(videoWidth, videoHeight, CV_8UC1);
     Mat bestframe, res_frame;
-    struct_keyframe key_frame;
+    // struct keyframe
+    keyframe kframe; 
     
     float over;
     int out_frame = 0, read_frame = 0;
 
     // we use the first frame as keyframe (so far, further implementations should include cli arg to pick one by user)
-    capture.read(key_frame.img);    read_frame ++;
-    key_frame.new_img = true;
+    capture.read(kframe.img);    read_frame ++;
+    kframe.new_img = true;
     // resizing for speed purposes
-    resize(key_frame.img, key_frame.res_img, cv::Size(hResizeFactor * key_frame.img.cols, hResizeFactor * key_frame.img.rows), 0, 0,
+    resize(kframe.img, kframe.res_img, cv::Size(hResizeFactor * kframe.img.cols, hResizeFactor * kframe.img.rows), 0, 0,
            CV_INTER_LINEAR);
 
     OutputFileName.str("");
     OutputFileName << OutputFile << setfill('0') << setw(4) << out_frame << ".jpg";
-    imwrite(OutputFileName.str(), key_frame.img);
+    imwrite(OutputFileName.str(), kframe.img);
 
     while (keyboard != 'q' && keyboard != 27) {
         t = (double) getTickCount();
@@ -248,20 +254,18 @@ int main(int argc, char *argv[]) {
         read_frame ++;
 
         float bestBlur = 0.0, currBlur;    //we start using the current frame blur as best blur value yet
-//		cout << ">RESIZE frame-------" << endl;
         resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);
-//		cout << ">OVERLAP-------" << endl;
-        over = calcOverlap(&key_frame, res_frame);
+
+        over = calcOverlap(&kframe, res_frame);
         cout << '\r' << "Frame: " << read_frame << " [" << out_frame << "]\tOverlap: " << over << std::flush;
 
 		//special case: overlap cannot be computed, we force it with an impossible negative value
         // TODO: check better numerically stable way to detect failed overlap detection, rather through forced value
 		if (over == -2.0){
-/*			cout << endl << "Forcing current new keyframe" << endl;
+            /*cout << endl << "Forcing current new keyframe" << endl;
 			keyframe = frame.clone();		
 	        resize(keyframe, res_keyframe, cv::Size(), hResizeFactor, hResizeFactor);*/
 			over = OVERLAP_MIN + 0.01;
-//			cout << ">FORCED-------" << endl;
 		}
 		if ((over < overlap) && (over > OVERLAP_MIN)) {
 			cout << endl;
@@ -269,7 +273,6 @@ int main(int argc, char *argv[]) {
             Start to search best frames in i+k frames, according to "blur level" estimator (based on Laplacian variance)
             We start using current frame as best frame so far
             */
-//			cout << ">REFINE-------" << endl;
             bestBlur = calcBlur(res_frame);
             bestframe = frame.clone();
             //for each frame inside the k-consecutive frame window, we refine the search
@@ -291,16 +294,13 @@ int main(int argc, char *argv[]) {
                 }
             }
             //< finally the new keyframe is the best frame from las iteration
-            key_frame.img = bestframe.clone();
-            key_frame.new_img = true;
+            kframe.img = bestframe.clone();
+            kframe.new_img = true;
             out_frame ++;
 
-
-//			cout << ">FOUND-------" << endl;
             OutputFileName.str("");
             OutputFileName << OutputFile << setfill('0') << setw(4) << out_frame << ".jpg";
-//            cout << "  >> storing best frame... ";
-//			cout << ">SAVE-------" << endl;
+
             imwrite(OutputFileName.str(), bestframe);
 
 #ifdef _VERBOSE_ON_
@@ -309,8 +309,7 @@ int main(int argc, char *argv[]) {
             t = (double) getTickCount();
 #endif
 			cout << "..." << endl;
-            resize(key_frame.img, key_frame.res_img, cv::Size(), hResizeFactor, hResizeFactor);
-//			cout << ">RESIZE keyframe-------" << endl;
+            resize(kframe.img, kframe.res_img, cv::Size(), hResizeFactor, hResizeFactor);
         }
 
         //get the input from the keyboard
@@ -362,13 +361,12 @@ float calcBlur(Mat frame) {
     @param img_object	Mat OpenCV matrix container of target frame
 	@brief retval		The normalized overlap among two given frame
 */
-float calcOverlap(struct_keyframe* key_frame, Mat img_object) {
+float calcOverlap(keyframe* kframe, Mat img_object) {
 	// if any of the input images are empty, then exits with error code
-    if (! img_object.data || ! key_frame->res_img.data) {
+    if (! img_object.data || ! kframe->res_img.data) {
         cout << " --(!) Error reading images " << std::endl;
         return - 1;
     }
-//	cout << ">>[OV] Data ok-------" << endl;
 
     //-- Step 1: Detect the keypoints using SURF Detector
     int minHessian = 400;
@@ -385,12 +383,12 @@ float calcOverlap(struct_keyframe* key_frame, Mat img_object) {
     surf(gpu_img_object, cuda::GpuMat(), keypoints_object, descriptors_object);
     //-- Step 3: Matching descriptor vectors using BruteForceMatcher
     surf.downloadKeypoints(keypoints_object, keypoints_object);
-    if(key_frame->new_img){
-        cvtColor(key_frame->res_img, key_frame->res_img, COLOR_BGR2GRAY);
-        gpu_img_scene.upload(key_frame->res_img);
+    if(kframe->new_img){
+        cvtColor(kframe->res_img, kframe->res_img, COLOR_BGR2GRAY);
+        gpu_img_scene.upload(kframe->res_img);
         surf(gpu_img_scene, cuda::GpuMat(), keypoints_scene, descriptors_scene);
-        surf.downloadKeypoints(key_frame->keypoints, key_frame->keypoints);
-        key_frame->new_img = false;
+        surf.downloadKeypoints(kframe->keypoints, kframe->keypoints);
+        kframe->new_img = false;
     }
 #else
     Mat descriptors_object, descriptors_scene;
@@ -398,14 +396,14 @@ float calcOverlap(struct_keyframe* key_frame, Mat img_object) {
     Ptr<SURF> detector = SURF::create(minHessian);
     // If we have a new keyframe compute the keypoints
     detector->detectAndCompute(img_object, Mat(), keypoints_object, descriptors_object);
-    if(key_frame->new_img){
-        cvtColor(key_frame->res_img, key_frame->res_img, COLOR_BGR2GRAY);
-        detector->detectAndCompute(key_frame->res_img, Mat(), key_frame->keypoints, key_frame->descriptors);
-        key_frame->new_img = false;
+    if(kframe->new_img){
+        cvtColor(kframe->res_img, kframe->res_img, COLOR_BGR2GRAY);
+        detector->detectAndCompute(kframe->res_img, Mat(), kframe->keypoints, kframe->descriptors);
+        kframe->new_img = false;
     }
 #endif
-    keypoints_scene = key_frame->keypoints;
-    descriptors_scene = key_frame->descriptors;
+    keypoints_scene = kframe->keypoints;
+    descriptors_scene = kframe->descriptors;
  
 
 #ifdef _VERBOSE_ON_
@@ -419,7 +417,6 @@ float calcOverlap(struct_keyframe* key_frame, Mat img_object) {
     // Avg time: 2.5 ms GPU / 21 ms CPU
     double min_dist = 100;
 
-//	cout << ">>[OV] SURF ok-------" << endl;
 #ifdef USE_GPU
     Ptr<cuda::DescriptorMatcher> matcher_gpu = cuda::DescriptorMatcher::createBFMatcher();
     vector<vector<DMatch> > matches;
@@ -446,8 +443,6 @@ float calcOverlap(struct_keyframe* key_frame, Mat img_object) {
     cout << "\t | BFMatcher GPU: " << t << " ms ";
     t = (double) getTickCount();
 #endif
-
-//	cout << ">>[OV] MATCHER ok-------" << endl;
 
     //***************************************************************//
     //we must check if found H matrix is good enough. It requires at least 4 points
