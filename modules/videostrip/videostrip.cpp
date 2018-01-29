@@ -171,9 +171,10 @@ int main(int argc, char *argv[]) {
     nCuda = cuda::getCudaEnabledDeviceCount();	// we try to detect any existing CUDA device
     cuda::DeviceInfo deviceInfo;
 
-    if (nCuda > 0)
+    if (nCuda > 0){
         cout << "CUDA enabled devices detected: " << deviceInfo.name() << endl;
         cuda::setDevice(0);
+    }
     else {
 #undef USE_GPU
         cout << "No CUDA device detected" << endl;
