@@ -80,7 +80,7 @@ typedef struct {
 //****	5.5 Repeat from 5
 
 // See description in function definition
-float calcOverlap(Mat image_scene, Mat image_object);
+float calcOverlap(struct_keyframe* key_frame, Mat image_object);
 // See description in function definition
 float calcBlur(Mat frame);
 
@@ -220,21 +220,22 @@ int main(int argc, char *argv[]) {
     /* PROCESS START */
     // Next, we start reading frames from the input video
     Mat frame(videoWidth, videoHeight, CV_8UC1);
-    Mat keyframe, bestframe, res_keyframe, res_frame;
-
-    bool bImagen = false;
+    Mat bestframe, res_frame;
+    struct_keyframe key_frame;
+    
     float over;
     int out_frame = 0, read_frame = 0;
 
     // we use the first frame as keyframe (so far, further implementations should include cli arg to pick one by user)
-    capture.read(keyframe);     read_frame ++;
+    capture.read(key_frame.img);    read_frame ++;
+    key_frame.new_img = true;
     // resizing for speed purposes
-    resize(keyframe, res_keyframe, cv::Size(hResizeFactor * keyframe.cols, hResizeFactor * keyframe.rows), 0, 0,
+    resize(key_frame.img, key_frame.res_img, cv::Size(hResizeFactor * key_frame.img.cols, hResizeFactor * key_frame.img.rows), 0, 0,
            CV_INTER_LINEAR);
 
     OutputFileName.str("");
     OutputFileName << OutputFile << setfill('0') << setw(4) << out_frame << ".jpg";
-    imwrite(OutputFileName.str(), keyframe);
+    imwrite(OutputFileName.str(), key_frame.img);
 
     while (keyboard != 'q' && keyboard != 27) {
         t = (double) getTickCount();
@@ -250,7 +251,7 @@ int main(int argc, char *argv[]) {
 //		cout << ">RESIZE frame-------" << endl;
         resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);
 //		cout << ">OVERLAP-------" << endl;
-        over = calcOverlap(res_keyframe, res_frame);
+        over = calcOverlap(&key_frame, res_frame);
         cout << '\r' << "Frame: " << read_frame << " [" << out_frame << "]\tOverlap: " << over << std::flush;
 
 		//special case: overlap cannot be computed, we force it with an impossible negative value
@@ -290,9 +291,10 @@ int main(int argc, char *argv[]) {
                 }
             }
             //< finally the new keyframe is the best frame from las iteration
-            keyframe = bestframe.clone();
-//            cout << " >> best frame found";
+            key_frame.img = bestframe.clone();
+            key_frame.new_img = true;
             out_frame ++;
+
 
 //			cout << ">FOUND-------" << endl;
             OutputFileName.str("");
@@ -307,7 +309,7 @@ int main(int argc, char *argv[]) {
             t = (double) getTickCount();
 #endif
 			cout << "..." << endl;
-            resize(keyframe, res_keyframe, cv::Size(), hResizeFactor, hResizeFactor);
+            resize(key_frame.img, key_frame.res_img, cv::Size(), hResizeFactor, hResizeFactor);
 //			cout << ">RESIZE keyframe-------" << endl;
         }
 
