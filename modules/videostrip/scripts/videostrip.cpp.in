@@ -1,3 +1,4 @@
+
 /********************************************************************/
 /* Project: imageproc								                */
 /* Module: 	Videostrip								                */
@@ -32,6 +33,8 @@
 #include <opencv2/features2d.hpp>
 #include "opencv2/calib3d.hpp"
 #include <opencv2/xfeatures2d.hpp>
+
+#cmakedefine USE_GPU
 
 /// CUDA specific libraries
 #ifdef USE_GPU
@@ -483,3 +486,4 @@ float calcOverlap(struct_keyframe* key_frame, Mat img_object) {
         return overlap;
     }
 }
+
