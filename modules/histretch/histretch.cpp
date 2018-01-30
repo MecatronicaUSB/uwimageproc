@@ -88,22 +88,6 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    //************************************************************************
-    /* FILENAME */
-    //gets the path of the input source
-/*    string FileName = InputFile.substr(InputFile.find_last_of("/") + 1);
-    string BasePath = InputFile.substr(0, InputFile.length() - FileName.length());
-
-    //determines the input file extension
-    string FileType;
-    if (InputFile.find_last_of(".") == - 1) // DOT (.) not found, so filename doesn't contain extension
-        FileType = "";
-    else
-        FileType = InputFile.substr();
-
-    // now we build the FileBase from input FileName
-    string FileBase = FileName.substr(0, FileName.length() - FileType.length());//*/
-
     //**************************************************************************
     cout << ABOUT_STRING << endl;
     cout << "Built with OpenCV " << CV_VERSION << endl;
@@ -129,6 +113,10 @@ int main(int argc, char *argv[]) {
     imshow (src_window, src);
 
     cout << "Applying " << num_convert << " histretch" << endl;
+
+    // After each operation, the result is merged back into 'src' matrix
+    // After several consecutive operations, there will be some image degradation due to rounding
+    // TODO: employ a floating representation for the intermediate matrix
 
     // Now, according to parameters provided at CLI calling time, we must split and process the image
     for (int nc=0; nc<num_convert; nc++)
@@ -197,19 +185,77 @@ int main(int argc, char *argv[]) {
                 break;
 
             case 'h':
-//                break;
-            case 's':
-//                break;
+                // convert to HLS
+                cvtColor(src,dst,COLOR_BGR2HLS);
+                // split channels
+                split (dst, dstHLS);
+                // then, we operate in the Val channel
+                equalizeHist (dstHLS[0], dstHLS[0]);
+                // merge back into a single matrix
+                merge (dstHLS, 3, dst);
+                // and convert back to BGR
+                cvtColor(dst,src,COLOR_HLS2BGR);
+                break;
             case 'l':
-                cout << "'hsl' not implemented yet..." << endl;
+                // convert to HLS
+                cvtColor(src,dst,COLOR_BGR2HLS);
+                // split channels
+                split (dst, dstHLS);
+                // then, we operate in the S channel
+                equalizeHist (dstHLS[1], dstHLS[1]);
+                // merge back into a single matrix
+                merge (dstHSV, 3, dst);
+                // and convert back to BGR
+                cvtColor(dst,src,COLOR_HLS2BGR);
+                break;
+            case 's':
+                // convert to HLS
+                cvtColor(src,dst,COLOR_BGR2HLS);
+                // split channels
+                split (dst, dstHLS);
+                // then, we operate in the Val channel
+                equalizeHist (dstHLS[2], dstHLS[2]);
+                // merge back into a single matrix
+                merge (dstHLS, 3, dst);
+                // and convert back to BGR
+                cvtColor(dst,src,COLOR_HLS2BGR);
                 break;
 
             case 'L':
-//                break;
+                // convert to L.a.b
+                cvtColor(src,dst,COLOR_BGR2Lab);
+                // split channels
+                split (dst, dstLab);
+                // then, we operate in the Val channel
+                equalizeHist (dstLab[0], dstLab[0]);
+                // merge back into a single matrix
+                merge (dstLab, 3, dst);
+                // and convert back to BGR
+                cvtColor(dst,src,COLOR_Lab2BGR);
+                break;
             case 'a':
-//                break;
+                // convert to L.a.b
+                cvtColor(src,dst,COLOR_BGR2Lab);
+                // split channels
+                split (dst, dstLab);
+                // then, we operate in the Val channel
+                equalizeHist (dstLab[1], dstLab[1]);
+                // merge back into a single matrix
+                merge (dstLab, 3, dst);
+                // and convert back to BGR
+                cvtColor(dst,src,COLOR_Lab2BGR);
+                break;
             case 'b':
-                cout << "'L.a.b.' not implemented yet..." << endl;
+                // convert to L.a.b
+                cvtColor(src,dst,COLOR_BGR2Lab);
+                // split channels
+                split (dst, dstLab);
+                // then, we operate in the Val channel
+                equalizeHist (dstLab[2], dstLab[2]);
+                // merge back into a single matrix
+                merge (dstLab, 3, dst);
+                // and convert back to BGR
+                cvtColor(dst,src,COLOR_Lab2BGR);
                 break;
 
             case 'Y':
