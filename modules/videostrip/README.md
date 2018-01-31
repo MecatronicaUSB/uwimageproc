@@ -1,22 +1,17 @@
 # Module: videostrip
 
-/* Project: imageproc								                */
-/* Module: 	Videostrip								                */
-/* File: 	videostrip.cpp                                          */
-/* Created:		11/12/2016                                          */
-/* Edited:		30/01/2017, 07:12 PM                                */
-/* Description:						                                
+*Project*: imageproc								                
+*Module*: 	Videostrip								        
+*File*: 	videostrip.cpp                                          
+*Created*:		11/12/2016                                      
+*Description*:						                                
 	Module that extracts frames from video for 2D mosaic or 3D model reconstruction. It estimates the overlap among frames
 	by computing the homography matrix. Current OpenCV implementation uses GPU acceleration for feature detection and matching
 	through CUDA library.
-*/
 
-/********************************************************************/
-/* Created by:                                                      */
-/* Jose Cappelletto - cappelletto@usb.ve			                */
-/* Collaborators:                                                   */
-/* Victor Garcia - victorygarciac@gmail.com                         */
-/********************************************************************/
+*Created by*: Jose Cappelletto - cappelletto@usb.ve
+*Collaborators*: Víctor Garcia - victorygarciac@gmail.com                      
+
 
             "{@input |<none>  | Input video path}"    // input image is the first argument (positional)
                     "{@output |<none> | Prefix for output .jpg images}" // output prefix is the second argument (positional)
