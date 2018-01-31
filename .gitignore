@@ -5,3 +5,4 @@ uwimageproc
 modules/videostrip/build
 build
 modules/videostrip/doc
+cmake-build-debug

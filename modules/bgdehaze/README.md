@@ -9,3 +9,6 @@ Run main.py and choose an image from the img folder to process. The result will 
 To use a differente window size for the local patch, run
 
 $ python main.py -i {input image index} -w {window size}
+
+# Author
+Alessandra Volpe
