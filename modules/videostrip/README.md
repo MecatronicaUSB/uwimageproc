@@ -37,8 +37,8 @@ This will open 'input.avi' file, extract frames with 60% of overlapping, skippin
 
 
 ## Built With
-
-* [CLion](https://www.jetbrains.com/clion/) - Dependency Management
+* [cmake 2.8](https://cmake.org/) - cmake
+* [CLion](https://www.jetbrains.com/clion/) - Just another IDE, pick anyone
 
 ## Contributing
 
