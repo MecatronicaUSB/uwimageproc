@@ -11,4 +11,4 @@ To use a differente window size for the local patch, run
 $ python main.py -i {input image index} -w {window size}
 
 # Author
-Alessandra Volpe
+Alessandra Volpe [al3ssandra](https://github.com/al3ssandra)
