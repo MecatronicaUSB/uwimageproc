@@ -1,6 +1,7 @@
 *.jpg
 *.MOV
 .vscode
+.idea
 uwimageproc
 modules/videostrip/build
 build
