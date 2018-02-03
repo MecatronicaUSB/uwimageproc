@@ -13,17 +13,20 @@
 	Author: victorygc <victorygarciac@gmail.com>
 	Date:   Wed Jan 31 01:37:49 2018 -0400
 	
-	Intended to improve current histogram stretching implementation, from percentil based
+	Intended to improve current histogram stretching implementation, from percentile based
 	RGB channel stretch, to a more general channel-by-channel basis. This will also improve
-	*uwimageproc* histretch module, as it will include the percentil based approach
+	*uwimageproc* histretch module, as it will include the percentile based approach
 	Currently being handled in a separate branch
 */
 
 #include "preprocessing.h"
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
+
 
 void getHistogram(cv::Mat img, int *histogram){    
 	int i = 0, j = 0;
-
+//    std::cout << "gH: Initializing histogram vector" << endl;
     // Initializing the histogram. TODO: Check if there is a faster way
     for(i=0; i<256; i++){
         histogram[i] = 0;
@@ -33,14 +36,18 @@ void getHistogram(cv::Mat img, int *histogram){
 	int width, height;
 	width = img.size().width;
 	height = img.size().height;
+//    cout << "gH: Computing image histogram" << endl;
+//    cout << "gH: Image size " << width << "x" << height << endl;
     // Computing the histogram as a cumulative of each integer value. WARNING: this will fail for any non-integer image matrix
     for(i=0; i<height; i++){
         for(j=0; j<width; j++){
-			int value = img.at<int>(i,j);
+            unsigned char value = img.at<unsigned char>(i,j);
+            //cout << "i: " << i << " j: " << j << " > " << value << endl;
             histogram[value] += 1;
         }
     }
 }
+
 
 void printHistogram(int histogram[256], std::string filename, cv::Scalar color){
     // Finding the maximum value of the histogram. It will be used to scale the
@@ -72,41 +79,64 @@ void printHistogram(int histogram[256], std::string filename, cv::Scalar color){
     cv::putText(imgHist, std::to_string(127), cv::Point(787-7*3,1430), cv::FONT_HERSHEY_PLAIN, 1.5, cvScalar(0,0,0), 2.0);
     cv::putText(imgHist, std::to_string(191), cv::Point(1107-7*3,1430), cv::FONT_HERSHEY_PLAIN, 1.5, cvScalar(0,0,0), 2.0);
     cv::putText(imgHist, std::to_string(255), cv::Point(1427-7*3,1430), cv::FONT_HERSHEY_PLAIN, 1.5, cvScalar(0,0,0), 2.0);
-
     // Saving the image
     cv::imwrite(filename, imgHist);
 }
+// */
+
 
 // Now it will operate in a single channel of the provided image. So, future implementations will require a function call per channel (still faster)
-void colorChannelStretch(cv::Mat imgOriginal, cv::Mat imgStretched, int lowerPercentile, int higherPercentile){
+void imgChannelStretch(cv::Mat imgOriginal, cv::Mat imgStretched, int lowerPercentile, int higherPercentile){
     // Computing the histograms
     int histogram[256];
+//    cout << "iCS: Calling getHistogram" << endl;
     getHistogram(imgOriginal, histogram);
+//    printHistogram(histogram, "input.jpg", 255);
 
     // Computing the percentiles. We force invalid values as initial values (just in case)
     int channelLowerPercentile = -1, channelHigherPercentile = -1;
-
+    int height = imgOriginal.size().height;
+    int width = imgOriginal.size().width;
     // Channel percentiles
-    int i = 0, sum = 0;
+    int i = 0;
+    float sum=0;
 	// Added aux var to reduce img.methods calls
-	float normImgSize = imgOriginal.size().height * imgOriginal.size().width / 100.0;
+	float normImgSize = height * width / 100.0;
 	// while we don't reach the highPercentile threshold...    
-	// Tis is some fashion of CFD: cumulative function distribution
+	// This is some fashion of CFD: cumulative function distribution
+//    cout << "iCS: Computing percentiles" << endl;
 	while ( sum < higherPercentile * normImgSize ){
-        if(sum < normImgSize) channelLowerPercentile++;
+        if(sum < lowerPercentile * normImgSize) channelLowerPercentile++; //TODO: check if missing "lowerPercentile"
         channelHigherPercentile++;
         sum += histogram[i];
         i++;
     }
 
+/*    const char* src_window = "Source image";
+    const char* dst_window = "Destination image";
+    namedWindow( src_window, cv::WINDOW_AUTOSIZE);
+    imshow (src_window, imgOriginal);
+    cv::waitKey(0);
+
+    cout << "iCS: HP: " << channelHigherPercentile << " LP: " << channelLowerPercentile << endl;
+
+    cout << "iCS: Applying stretch" << endl;//*/
     // Creating the modified image, imgStretched, pixel by pixel // TODO: this can be done in a single operation as y = m.x+b
     int j;
-    for(i=0; i<imgOriginal.size().height; i++){
-        for(j=0; j<imgOriginal.size().width; j++){
-            // Single channel image 
-            if ( imgOriginal.at<int>(i,j) < channelLowerPercentile) imgStretched.at<int>(i,j) = 0;
-            else if ( imgOriginal.at<int>(i,j) > channelHigherPercentile ) imgStretched.at<int>(i,j) = 255;
-            else imgStretched.at<int>(i,j) = ( 255 * ( imgOriginal.at<int>(i,j) - channelLowerPercentile ) ) / ( channelHigherPercentile - channelLowerPercentile );
+    for(i=0; i<height; i++){
+        for(j=0; j<width; j++){
+            // Single channel image level clipping, and then scaling+offset (y=m.x + b)
+            if ( imgOriginal.at<unsigned char>(i,j) < channelLowerPercentile ) imgStretched.at<unsigned char>(i,j) = 0;
+            else if ( imgOriginal.at<unsigned char>(i,j) > channelHigherPercentile ) imgStretched.at<unsigned char>(i,j) = 255;
+            else imgStretched.at<unsigned char>(i,j) = ( 255 * ( imgOriginal.at<unsigned char>(i,j) - channelLowerPercentile ) ) / ( channelHigherPercentile - channelLowerPercentile );
         }
     }
+/*    namedWindow( src_window, cv::WINDOW_AUTOSIZE);
+//    imshow (src_window, imgStretched);
+//    cv::waitKey(0);
+
+//    getHistogram(imgStretched, histogram);
+//    cout << "iCS: exporting output histogram to disk" << endl;
+//    printHistogram(histogram, "output.jpg", 255);
+//    cout << "iCS: done..." << endl;//*/
 }

@@ -13,6 +13,11 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <string>
+#include <iostream>
+#include <iomanip>
+#include <sstream>
+
+using namespace std;
 
 /**
  * @brief Computes the intensity distribution histograms for the three channels
@@ -49,7 +54,7 @@ void printHistogram(int histogram[256], std::string filename, cv::Scalar color);
  * 0 and 100.\n
  * \e lowerPercentile must be smaller than \e higherPercentile
  */
-void colorChannelStretch(cv::Mat imgOriginal, cv::Mat imgStretched, int lowerPercentile, int higherPercentile);
+void imgChannelStretch(cv::Mat imgOriginal, cv::Mat imgStretched, int lowerPercentile=0, int higherPercentile=100);
 // Transform imgOriginal so that, for each channel histogram, its
 // lowerPercentile and higherPercentile values are moved to 0 and 255,
 // respectively. Values in between are linearly scaled. Values smaller
