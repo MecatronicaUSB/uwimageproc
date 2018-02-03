@@ -23,8 +23,19 @@ if(CMAKE_VERSION VERSION_LESS "2.8.11")
   include_directories(${OpenCV_INCLUDE_DIRS})
 endif()
 
+file(GLOB histretch-files
+    "*.h"
+    "*.hxx"
+    "*.cpp"
+    "../utils/*.cpp"
+    "../utils/*.h"
+    "../utils/*.hxx"
+)
+
 # Declare the executable target built from your sources
-add_executable(histretch histretch.cpp)
+add_executable(histretch ${histretch-files})
+
+target_compile_options(histretch PUBLIC -std=c++11)
 
 # Link your application with OpenCV libraries
 target_link_libraries(histretch ${OpenCV_LIBS})
