@@ -102,7 +102,7 @@ int main(int argc, char *argv[]) {
 
     //**************************************************************************
 
-    Mat src, dst, srcBGR[3], dstBGR[3], dstHSV[3], dstHLS[3], dstLab[3], dstYCC[3];
+    Mat src, dst, srcBGR[3], dstBGR[3], dstHSV[3], dstHLS[3], dstLab[3], dstYCX[3];
     const char* src_window = "Source image";
     const char* dst_window = "Destination image";
     int curColSpace = COLOR_RGB2BGR; // default colour space: BGR
@@ -266,11 +266,40 @@ int main(int argc, char *argv[]) {
                 break;
 
             case 'Y':
-//                break;
+                // convert to YCrCb
+                cvtColor(src,dst,COLOR_BGR2YCrCb);
+                // split channels
+                split (dst, dstYCX);
+                // then, we operate in the Val channel
+                imgChannelStretch(dstYCX[0], dstYCX[0], min_percent, max_percent); // TODO: Bug in preprocessing.cpp, seems to be fixed
+                // merge back into a single matrix
+                merge (dstYCX, 3, dst);
+                // and convert back to BGR
+                cvtColor(dst,src,COLOR_Lab2BGR);
+                break;
             case 'C':
-//                break;
+                // convert to YCrCb
+                cvtColor(src,dst,COLOR_BGR2YCrCb);
+                // split channels
+                split (dst, dstYCX);
+                // then, we operate in the Val channel
+                imgChannelStretch(dstYCX[1], dstYCX[1], min_percent, max_percent); // TODO: Bug in preprocessing.cpp, seems to be fixed
+                // merge back into a single matrix
+                merge (dstYCX, 3, dst);
+                // and convert back to BGR
+                cvtColor(dst,src,COLOR_Lab2BGR);
+                break;
             case 'X':
-                cout << "'YCrCb' not implemented yet..." << endl;
+                // convert to YCrCb
+                cvtColor(src,dst,COLOR_BGR2YCrCb);
+                // split channels
+                split (dst, dstYCX);
+                // then, we operate in the Val channel
+                imgChannelStretch(dstYCX[2], dstYCX[2], min_percent, max_percent); // TODO: Bug in preprocessing.cpp, seems to be fixed
+                // merge back into a single matrix
+                merge (dstYCX, 3, dst);
+                // and convert back to BGR
+                cvtColor(dst,src,COLOR_Lab2BGR);
                 break;
 
             default:
@@ -278,36 +307,9 @@ int main(int argc, char *argv[]) {
                 break;
         }
     }
-/*
-    // Conversion to HSV space
-    cvtColor (src, dst, COLOR_BGR2HSV);
-    split(dst, dstHSV);
-
-    // Conversion to HLS space
-    cvtColor (src, src, COLOR_BGR2HLS);
-    split(dst, dstHLS);
-
-    // Conversion to L.a.b space
-    cvtColor (src, dst, COLOR_BGR2Lab);
-    split(dst, dstLab);
-
-    // Conversion to YCrCb space (JPEG)
-    cvtColor (src, dst, COLOR_BGR2YCrCb);
-    split(dst, dstYCC);//*/
 
     namedWindow( dst_window, WINDOW_AUTOSIZE);
 
-/*
-    imshow ("b", srcBGR[0]);
-    imshow ("G", srcBGR[1]);
-    imshow ("r", srcBGR[2]);
-
-    imshow ("bo", dstBGR[0]);
-    imshow ("Go", dstBGR[1]);
-    imshow ("ro", dstBGR[2]);
-*/
-
-/*    merge (dstBGR,3,dst);*/
     cout << "hS: showing resulting window" << endl;
 
     imshow (dst_window, src);
