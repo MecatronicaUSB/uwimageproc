@@ -4,12 +4,13 @@
 	x Read about Trac authentication with Github account
 * Include git repo into Trac env
 x Test post-commit hook from Github to Trac
-- Test ticket and commit integration
+* Test ticket and commit integration
 * Push base repo module, with proposed directory hierarchy (-check among other projects)
 x Clone repo into bitbucket por private developments
-- Choose OS license
+- Choose OS license. GNU GPLv3.0 so far
 - Create modules:
 	. Dehaze
 	. ACLAHE
 	. SCB
-	.  
+	. histretch
+	. videostrip
