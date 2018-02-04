@@ -27,7 +27,7 @@ file(GLOB histretch-files
     "*.h"
     "*.hxx"
     "*.cpp"
-    "../utils/*.cpp"
+    "../utils/*.cpp"	# to be changed with new directory structure
     "../utils/*.h"
     "../utils/*.hxx"
 )

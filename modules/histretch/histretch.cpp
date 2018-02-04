@@ -5,8 +5,8 @@
 /* Created:		30/01/2018                                          */
 /* Description:
     Histogram stretching, for simple color balance. C++ port from module
-    prototype implemented in Python by Armando Longart
-    TODO: add [ref] to original package
+    prototype implemented in Python by Armando Longart @ajlongart
+    See [https://github.com/ajlongart/Tesis-UIP]
  */
 /********************************************************************/
 
@@ -31,6 +31,7 @@
 #include <opencv2/imgproc.hpp>
 
 /// Include auxiliary utility libraries
+// TODO: change directory structure to math proposed template  (see mosaic repo)
 #include "../utils/preprocessing.h"
 
 // #define _VERBOSE_ON_
@@ -84,7 +85,6 @@ int main(int argc, char *argv[]) {
 
     // TODO: still unable to correctly parse the argument (in a non-positional way)
     String cChannel = cvParser.get<cv::String>("c");	// gets argument -c=x, where 'x' is the image channel
-    // possible values of channel: r, g, b, h, s, v  TODO: add a full fledged implementation for all possible channels
 
 	// Check if occurred any error during parsing process
     if (! cvParser.check()) {
@@ -134,7 +134,7 @@ int main(int argc, char *argv[]) {
                 // at this point the data is supposed to be already in BGR
                 split (src, srcBGR);
                 // then, we operate in the BLUE channel
-                imgChannelStretch(srcBGR[0], srcBGR[0], min_percent, max_percent); // TODO: Bug in preprocessing.cpp, seems to be fixed
+                imgChannelStretch(srcBGR[0], srcBGR[0], min_percent, max_percent); 
                 //equalizeHist (srcBGR[0], srcBGR[0]);
                 merge (srcBGR, 3, src);
                 break;
@@ -142,7 +142,7 @@ int main(int argc, char *argv[]) {
                 // at this point the data is supposed to be already in BGR
                 split (src, srcBGR);
                 // then, we operate in the RED channel
-                imgChannelStretch(srcBGR[1], srcBGR[1], min_percent, max_percent); // TODO: Bug in preprocessing.cpp, seems to be fixed
+                imgChannelStretch(srcBGR[1], srcBGR[1], min_percent, max_percent); 
 //                equalizeHist (srcBGR[1], srcBGR[1]);
                 merge (srcBGR, 3, src);
                 break;
@@ -150,7 +150,7 @@ int main(int argc, char *argv[]) {
                 // at this point the data is supposed to be already in BGR
                 split (src, srcBGR);
                 // then, we operate in the RED channel
-                imgChannelStretch(srcBGR[2], srcBGR[2], min_percent, max_percent); // TODO: Bug in preprocessing.cpp, seems to be fixed
+                imgChannelStretch(srcBGR[2], srcBGR[2], min_percent, max_percent); 
                 merge (srcBGR, 3, src);
                 break;
 
@@ -160,7 +160,7 @@ int main(int argc, char *argv[]) {
                 // split channels
                 split (dst, dstHSV);
                 // then, we operate in the Hue channel
-                imgChannelStretch(dstHSV[0], dstHSV[0], min_percent, max_percent); // TODO: Bug in preprocessing.cpp, seems to be fixed
+                imgChannelStretch(dstHSV[0], dstHSV[0], min_percent, max_percent); 
                 // merge back into a single matrix
                 merge (dstHSV, 3, dst);
                 // and convert back to BGR
@@ -172,7 +172,7 @@ int main(int argc, char *argv[]) {
                 // split channels
                 split (dst, dstHSV);
                 // then, we operate in the Sat channel
-                imgChannelStretch(dstHSV[1], dstHSV[1], min_percent, max_percent); // TODO: Bug in preprocessing.cpp, seems to be fixed
+                imgChannelStretch(dstHSV[1], dstHSV[1], min_percent, max_percent); 
                 // merge back into a single matrix
                 merge (dstHSV, 3, dst);
                 // and convert back to BGR
@@ -184,7 +184,7 @@ int main(int argc, char *argv[]) {
                 // split channels
                 split (dst, dstHSV);
                 // then, we operate in the Val channel
-                imgChannelStretch(dstHSV[2], dstHSV[2], min_percent, max_percent); // TODO: Bug in preprocessing.cpp, seems to be fixed
+                imgChannelStretch(dstHSV[2], dstHSV[2], min_percent, max_percent); 
                 // merge back into a single matrix
                 merge (dstHSV, 3, dst);
                 // and convert back to BGR
@@ -197,7 +197,7 @@ int main(int argc, char *argv[]) {
                 // split channels
                 split (dst, dstHLS);
                 // then, we operate in the Val channel
-                imgChannelStretch(dstHLS[0], dstHLS[0], min_percent, max_percent); // TODO: Bug in preprocessing.cpp, seems to be fixed
+                imgChannelStretch(dstHLS[0], dstHLS[0], min_percent, max_percent); 
                 // merge back into a single matrix
                 merge (dstHLS, 3, dst);
                 // and convert back to BGR
@@ -209,7 +209,7 @@ int main(int argc, char *argv[]) {
                 // split channels
                 split (dst, dstHLS);
                 // then, we operate in the S channel
-                imgChannelStretch(dstHLS[1], dstHLS[1], min_percent, max_percent); // TODO: Bug in preprocessing.cpp, seems to be fixed
+                imgChannelStretch(dstHLS[1], dstHLS[1], min_percent, max_percent); 
                 // merge back into a single matrix
                 merge (dstHSV, 3, dst);
                 // and convert back to BGR
@@ -221,7 +221,7 @@ int main(int argc, char *argv[]) {
                 // split channels
                 split (dst, dstHLS);
                 // then, we operate in the Val channel
-                imgChannelStretch(dstHLS[2], dstHLS[2], min_percent, max_percent); // TODO: Bug in preprocessing.cpp, seems to be fixed
+                imgChannelStretch(dstHLS[2], dstHLS[2], min_percent, max_percent); 
                 // merge back into a single matrix
                 merge (dstHLS, 3, dst);
                 // and convert back to BGR
@@ -234,7 +234,7 @@ int main(int argc, char *argv[]) {
                 // split channels
                 split (dst, dstLab);
                 // then, we operate in the Val channel
-                imgChannelStretch(dstLab[0], dstLab[0], min_percent, max_percent); // TODO: Bug in preprocessing.cpp, seems to be fixed
+                imgChannelStretch(dstLab[0], dstLab[0], min_percent, max_percent); 
                 // merge back into a single matrix
                 merge (dstLab, 3, dst);
                 // and convert back to BGR
@@ -246,7 +246,7 @@ int main(int argc, char *argv[]) {
                 // split channels
                 split (dst, dstLab);
                 // then, we operate in the Val channel
-                imgChannelStretch(dstLab[1], dstLab[1], min_percent, max_percent); // TODO: Bug in preprocessing.cpp, seems to be fixed
+                imgChannelStretch(dstLab[1], dstLab[1], min_percent, max_percent); 
                 // merge back into a single matrix
                 merge (dstLab, 3, dst);
                 // and convert back to BGR
@@ -258,7 +258,7 @@ int main(int argc, char *argv[]) {
                 // split channels
                 split (dst, dstLab);
                 // then, we operate in the Val channel
-                imgChannelStretch(dstLab[2], dstLab[2], min_percent, max_percent); // TODO: Bug in preprocessing.cpp, seems to be fixed
+                imgChannelStretch(dstLab[2], dstLab[2], min_percent, max_percent); 
                 // merge back into a single matrix
                 merge (dstLab, 3, dst);
                 // and convert back to BGR
@@ -271,7 +271,7 @@ int main(int argc, char *argv[]) {
                 // split channels
                 split (dst, dstYCX);
                 // then, we operate in the Val channel
-                imgChannelStretch(dstYCX[0], dstYCX[0], min_percent, max_percent); // TODO: Bug in preprocessing.cpp, seems to be fixed
+                imgChannelStretch(dstYCX[0], dstYCX[0], min_percent, max_percent); 
                 // merge back into a single matrix
                 merge (dstYCX, 3, dst);
                 // and convert back to BGR
@@ -283,7 +283,7 @@ int main(int argc, char *argv[]) {
                 // split channels
                 split (dst, dstYCX);
                 // then, we operate in the Val channel
-                imgChannelStretch(dstYCX[1], dstYCX[1], min_percent, max_percent); // TODO: Bug in preprocessing.cpp, seems to be fixed
+                imgChannelStretch(dstYCX[1], dstYCX[1], min_percent, max_percent); 
                 // merge back into a single matrix
                 merge (dstYCX, 3, dst);
                 // and convert back to BGR
@@ -295,7 +295,7 @@ int main(int argc, char *argv[]) {
                 // split channels
                 split (dst, dstYCX);
                 // then, we operate in the Val channel
-                imgChannelStretch(dstYCX[2], dstYCX[2], min_percent, max_percent); // TODO: Bug in preprocessing.cpp, seems to be fixed
+                imgChannelStretch(dstYCX[2], dstYCX[2], min_percent, max_percent); 
                 // merge back into a single matrix
                 merge (dstYCX, 3, dst);
                 // and convert back to BGR
