@@ -24,12 +24,12 @@ if(CMAKE_VERSION VERSION_LESS "2.8.11")
 endif()
 
 file(GLOB histretch-files
-    "*.h"
-    "*.hxx"
-    "*.cpp"
-    "../utils/*.cpp"	# to be changed with new directory structure
-    "../utils/*.h"
-    "../utils/*.hxx"
+    "src/*.h"
+    "src/*.hxx"
+    "src/*.cpp"
+    "../common/*.cpp"	# to be changed with new directory structure
+    "../common/*.h"
+    "../common/*.hxx"
 )
 
 # Declare the executable target built from your sources

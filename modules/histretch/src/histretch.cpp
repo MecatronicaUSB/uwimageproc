@@ -32,7 +32,7 @@
 
 /// Include auxiliary utility libraries
 // TODO: change directory structure to math proposed template  (see mosaic repo)
-#include "../utils/preprocessing.h"
+#include "../../common/preprocessing.h"
 
 // #define _VERBOSE_ON_
 // C++ namespaces
