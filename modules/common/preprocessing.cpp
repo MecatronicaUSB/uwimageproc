@@ -121,16 +121,11 @@ void imgChannelStretch(cv::Mat imgOriginal, cv::Mat imgStretched, int lowerPerce
     cout << "iCS: HP: " << channelHigherPercentile << " LP: " << channelLowerPercentile << endl;
 
     cout << "iCS: Applying stretch" << endl;//*/
-    // Creating the modified image, imgStretched, pixel by pixel // TODO: this can be done in a single operation as y = m.x+b
-    int j;
-    for(i=0; i<height; i++){
-        for(j=0; j<width; j++){
-            // Single channel image level clipping, and then scaling+offset (y=m.x + b)
-            if ( imgOriginal.at<unsigned char>(i,j) < channelLowerPercentile ) imgStretched.at<unsigned char>(i,j) = 0;
-            else if ( imgOriginal.at<unsigned char>(i,j) > channelHigherPercentile ) imgStretched.at<unsigned char>(i,j) = 255;
-            else imgStretched.at<unsigned char>(i,j) = ( 255 * ( imgOriginal.at<unsigned char>(i,j) - channelLowerPercentile ) ) / ( channelHigherPercentile - channelLowerPercentile );
-        }
-    }
+    int j, m;
+    cv::Scalar b;
+    m = 255 / ( channelHigherPercentile - channelLowerPercentile );
+    imgStretched -= b;
+    imgStretched *= m;
 /*    namedWindow( src_window, cv::WINDOW_AUTOSIZE);
 //    imshow (src_window, imgStretched);
 //    cv::waitKey(0);
