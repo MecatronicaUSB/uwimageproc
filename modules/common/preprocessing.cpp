@@ -16,7 +16,7 @@
 	Intended to improve current histogram stretching implementation, from percentile based
 	RGB channel stretch, to a more general channel-by-channel basis. This will also improve
 	*uwimageproc* histretch module, as it will include the percentile based approach
-	Currently being handled in a separate branch
+	Currently being handled in a separate branch.
 */
 
 #include "preprocessing.h"
@@ -31,7 +31,7 @@ void getHistogram(cv::Mat img, int *histogram){
     for(i=0; i<256; i++){
         histogram[i] = 0;
     }
-	// by using aux variables, we decrease overhead create by multiple calls to cvMat image methods to retrieve its size
+	// by using aux variables, we decrease overhead created by multiple calls to cvMat image methods to retrieve its size
 	// TODO: is it possible to measure the impact?
 	int width, height;
 	width = img.size().width;
@@ -106,7 +106,7 @@ void imgChannelStretch(cv::Mat imgOriginal, cv::Mat imgStretched, int lowerPerce
 	// This is some fashion of CFD: cumulative function distribution
 //    cout << "iCS: Computing percentiles" << endl;
 	while ( sum < higherPercentile * normImgSize ){
-        if(sum < lowerPercentile * normImgSize) channelLowerPercentile++; //TODO: check if missing "lowerPercentile"
+        if(sum < lowerPercentile * normImgSize) channelLowerPercentile++; //Fix #6: Missing lowerPercentil to proper scaling
         channelHigherPercentile++;
         sum += histogram[i];
         i++;
@@ -121,7 +121,7 @@ void imgChannelStretch(cv::Mat imgOriginal, cv::Mat imgStretched, int lowerPerce
     cout << "iCS: HP: " << channelHigherPercentile << " LP: " << channelLowerPercentile << endl;
 
     cout << "iCS: Applying stretch" << endl;//*/
-    // Creating the modified image, imgStretched, pixel by pixel // TODO: this can be done in a single operation as y = m.x+b
+    // Creating the modified image, imgStretched, pixel by pixel // TODO: Issue #7 this can be done in a single operation as y = m.x+b
     int j;
     for(i=0; i<height; i++){
         for(j=0; j<width; j++){
