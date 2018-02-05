@@ -121,9 +121,10 @@ void imgChannelStretch(cv::Mat imgOriginal, cv::Mat imgStretched, int lowerPerce
     cout << "iCS: HP: " << channelHigherPercentile << " LP: " << channelLowerPercentile << endl;
 
     cout << "iCS: Applying stretch" << endl;//*/
-    int j, m;
+    int j;
+    float m;
     cv::Scalar b;
-    m = 255 / ( channelHigherPercentile - channelLowerPercentile );
+    m = 255.0 / ( channelHigherPercentile - channelLowerPercentile );
     imgStretched -= b;
     imgStretched *= m;
 /*    namedWindow( src_window, cv::WINDOW_AUTOSIZE);
