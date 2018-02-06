@@ -140,7 +140,8 @@ void imgChannelStretch(cv::Mat imgOriginal, cv::Mat imgStretched, int lowerPerce
 int numChannel(char c){
     if(c == 'R' || c == 'H' || c == 'h' || c == 'L' || c == 'Y' ) return 0;  
     if(c == 'G' || c == 'S' || c == 's' || c == 'a' || c == 'C' ) return 1;   
-    if(c == 'B' || c == 'V' || c == 'l' || c == 'b' || c == 'X' ) return 2;   
+    if(c == 'B' || c == 'V' || c == 'l' || c == 'b' || c == 'X' ) return 2;
+    return -1;  
 }
 
 int numSpace(char c){
@@ -148,5 +149,6 @@ int numSpace(char c){
     if(c == 'H' || c == 'S' || c == 'V' ) return 1;    
     if(c == 'h' || c == 's' || c == 'l' ) return 2;
     if(c == 'L' || c == 'a' || c == 'b' ) return 3;  
-    if(c == 'Y' || c == 'C' || c == 'X' ) return 4;   
+    if(c == 'Y' || c == 'C' || c == 'X' ) return 4;
+    return -1;
 }
