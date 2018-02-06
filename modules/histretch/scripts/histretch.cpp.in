@@ -39,7 +39,7 @@
 using namespace cv;
 using namespace std;
 
-//#cmakedefine USE_GPU
+#cmakedefine USE_GPU
 
 /// CUDA specific libraries
 #ifdef USE_GPU
