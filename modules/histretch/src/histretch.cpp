@@ -129,8 +129,6 @@ int main(int argc, char *argv[]) {
     cout << "Output: " << OutputFile << endl;
     cout << "Channel: " << cChannel  << endl;
 
-
-
     //**************************************************************************
     Mat src, dst, srcBGR[3], dstBGR[3], dstHSV[3], dstHLS[3], dstLab[3], dstYCX[3];
     const char* src_window = "Source image";
@@ -149,193 +147,258 @@ int main(int argc, char *argv[]) {
 
     cout << "Applying " << num_convert << " histretch" << endl;
 
+
     // After each operation, the result is merged back into 'src' matrix
     // After several consecutive operations, there will be some image degradation due to rounding
     // TODO: employ a floating representation for the intermediate matrix to reduce rounding loss
 
     // Now, according to parameters provided at CLI calling time, we must split and process the image
-    for (int nc=0; nc<num_convert; nc++)
-    {
+    for (int nc=0; nc<num_convert; nc++){
         char c = cChannel[nc];
+        int channel = numChannel(c);
+        int space = numSpace(c);
         cout << "\tChannel[" << nc << "]: " << c << endl;
-        switch (c)
-        {
-            case 'B':   // stretch Blue  channel of RGB space
-                // at this point the data is supposed to be already in BGR
-                split (src, srcBGR);
-                // then, we operate in the BLUE channel
-                imgChannelStretch(srcBGR[0], srcBGR[0], min_percent, max_percent); 
-                //equalizeHist (srcBGR[0], srcBGR[0]);
-                merge (srcBGR, 3, src);
-                break;
-            case 'G':   // stretch Green channel of RGB space
-                // at this point the data is supposed to be already in BGR
-                split (src, srcBGR);
-                // then, we operate in the RED channel
-                imgChannelStretch(srcBGR[1], srcBGR[1], min_percent, max_percent); 
-//                equalizeHist (srcBGR[1], srcBGR[1]);
-                merge (srcBGR, 3, src);
-                break;
-            case 'R':   // stretch Red  channel of RGB space
-                // at this point the data is supposed to be already in BGR
-                split (src, srcBGR);
-                // then, we operate in the RED channel
-                imgChannelStretch(srcBGR[2], srcBGR[2], min_percent, max_percent); 
-                merge (srcBGR, 3, src);
-                break;
-
-            case 'H':   // stretch Hue  channel of HSV space
-                // convert to HSV
-                cvtColor(src,dst,COLOR_BGR2HSV);
-                // split channels
-                split (dst, dstHSV);
-                // then, we operate in the Hue channel
-                imgChannelStretch(dstHSV[0], dstHSV[0], min_percent, max_percent); 
-                // merge back into a single matrix
-                merge (dstHSV, 3, dst);
-                // and convert back to BGR
-                cvtColor(dst,src,COLOR_HSV2BGR);
-                break;
-            case 'S':   // stretch Saturation channel of HSV space
-                // convert to HSV
-                cvtColor(src,dst,COLOR_BGR2HSV);
-                // split channels
-                split (dst, dstHSV);
-                // then, we operate in the Sat channel
-                imgChannelStretch(dstHSV[1], dstHSV[1], min_percent, max_percent); 
-                // merge back into a single matrix
-                merge (dstHSV, 3, dst);
-                // and convert back to BGR
-                cvtColor(dst,src,COLOR_HSV2BGR);
-                break;
-            case 'V':   // stretch Value channel of HSV space
-                // convert to HSV
-                cvtColor(src,dst,COLOR_BGR2HSV);
-                // split channels
-                split (dst, dstHSV);
-                // then, we operate in the Val channel
-                imgChannelStretch(dstHSV[2], dstHSV[2], min_percent, max_percent); 
-                // merge back into a single matrix
-                merge (dstHSV, 3, dst);
-                // and convert back to BGR
-                cvtColor(dst,src,COLOR_HSV2BGR);
-                break;
-
-            case 'h':
-                // convert to HLS
-                cvtColor(src,dst,COLOR_BGR2HLS);
-                // split channels
-                split (dst, dstHLS);
-                // then, we operate in the Val channel
-                imgChannelStretch(dstHLS[0], dstHLS[0], min_percent, max_percent); 
-                // merge back into a single matrix
-                merge (dstHLS, 3, dst);
-                // and convert back to BGR
-                cvtColor(dst,src,COLOR_HLS2BGR);
-                break;
-            case 'l':
-                // convert to HLS
-                cvtColor(src,dst,COLOR_BGR2HLS);
-                // split channels
-                split (dst, dstHLS);
-                // then, we operate in the S channel
-                imgChannelStretch(dstHLS[1], dstHLS[1], min_percent, max_percent); 
-                // merge back into a single matrix
-                merge (dstHSV, 3, dst);
-                // and convert back to BGR
-                cvtColor(dst,src,COLOR_HLS2BGR);
-                break;
-            case 's':
-                // convert to HLS
-                cvtColor(src,dst,COLOR_BGR2HLS);
-                // split channels
-                split (dst, dstHLS);
-                // then, we operate in the Val channel
-                imgChannelStretch(dstHLS[2], dstHLS[2], min_percent, max_percent); 
-                // merge back into a single matrix
-                merge (dstHLS, 3, dst);
-                // and convert back to BGR
-                cvtColor(dst,src,COLOR_HLS2BGR);
-                break;
-
-            case 'L':
-                // convert to L.a.b
-                cvtColor(src,dst,COLOR_BGR2Lab);
-                // split channels
-                split (dst, dstLab);
-                // then, we operate in the Val channel
-                imgChannelStretch(dstLab[0], dstLab[0], min_percent, max_percent); 
-                // merge back into a single matrix
-                merge (dstLab, 3, dst);
-                // and convert back to BGR
-                cvtColor(dst,src,COLOR_Lab2BGR);
-                break;
-            case 'a':
-                // convert to L.a.b
-                cvtColor(src,dst,COLOR_BGR2Lab);
-                // split channels
-                split (dst, dstLab);
-                // then, we operate in the Val channel
-                imgChannelStretch(dstLab[1], dstLab[1], min_percent, max_percent); 
-                // merge back into a single matrix
-                merge (dstLab, 3, dst);
-                // and convert back to BGR
-                cvtColor(dst,src,COLOR_Lab2BGR);
-                break;
-            case 'b':
-                // convert to L.a.b
-                cvtColor(src,dst,COLOR_BGR2Lab);
-                // split channels
-                split (dst, dstLab);
-                // then, we operate in the Val channel
-                imgChannelStretch(dstLab[2], dstLab[2], min_percent, max_percent); 
-                // merge back into a single matrix
-                merge (dstLab, 3, dst);
-                // and convert back to BGR
-                cvtColor(dst,src,COLOR_Lab2BGR);
-                break;
-
-            case 'Y':
-                // convert to YCrCb
-                cvtColor(src,dst,COLOR_BGR2YCrCb);
-                // split channels
-                split (dst, dstYCX);
-                // then, we operate in the Val channel
-                imgChannelStretch(dstYCX[0], dstYCX[0], min_percent, max_percent); 
-                // merge back into a single matrix
-                merge (dstYCX, 3, dst);
-                // and convert back to BGR
-                cvtColor(dst,src,COLOR_Lab2BGR);
-                break;
-            case 'C':
-                // convert to YCrCb
-                cvtColor(src,dst,COLOR_BGR2YCrCb);
-                // split channels
-                split (dst, dstYCX);
-                // then, we operate in the Val channel
-                imgChannelStretch(dstYCX[1], dstYCX[1], min_percent, max_percent); 
-                // merge back into a single matrix
-                merge (dstYCX, 3, dst);
-                // and convert back to BGR
-                cvtColor(dst,src,COLOR_Lab2BGR);
-                break;
-            case 'X':
-                // convert to YCrCb
-                cvtColor(src,dst,COLOR_BGR2YCrCb);
-                // split channels
-                split (dst, dstYCX);
-                // then, we operate in the Val channel
-                imgChannelStretch(dstYCX[2], dstYCX[2], min_percent, max_percent); 
-                // merge back into a single matrix
-                merge (dstYCX, 3, dst);
-                // and convert back to BGR
-                cvtColor(dst,src,COLOR_Lab2BGR);
-                break;
-
-            default:
-                cout << "Option " << c << " not recognized, skipping..." << endl;
-                break;
+        // RGB space
+        if(space == 0){
+            split (src, srcBGR);
+            // then, we operate in the BLUE channel
+            imgChannelStretch(srcBGR[channel], srcBGR[channel], min_percent, max_percent); 
+            //equalizeHist (srcBGR[0], srcBGR[0]);
+            merge (srcBGR, 3, src);
         }
+        // HSV space
+        else if(space == 1){
+            // convert to HSV
+            cvtColor(src,dst,COLOR_BGR2HSV);
+            // split channels
+            split (dst, dstHSV);
+            // then, we operate in the Hue channel
+            imgChannelStretch(dstHSV[channel], dstHSV[channel], min_percent, max_percent); 
+            // merge back into a single matrix
+            merge (dstHSV, 3, dst);
+            // and convert back to BGR
+            cvtColor(dst,src,COLOR_HSV2BGR);
+        }
+        // Space HLS
+        else if(space == 2){
+            // convert to HLS
+            cvtColor(src,dst,COLOR_BGR2HLS);
+            // split channels
+            split (dst, dstHLS);
+            // then, we operate in the Val channel
+            imgChannelStretch(dstHLS[channel], dstHLS[channel], min_percent, max_percent); 
+            // merge back into a single matrix
+            merge (dstHLS, 3, dst);
+            // and convert back to BGR
+            cvtColor(dst,src,COLOR_HLS2BGR);
+        }
+        // Space Lab
+        else if(space == 3){
+            // convert to L.a.b
+            cvtColor(src,dst,COLOR_BGR2Lab);
+            // split channels
+            split (dst, dstLab);
+            // then, we operate in the Val channel
+            imgChannelStretch(dstLab[channel], dstLab[channel], min_percent, max_percent); 
+            // merge back into a single matrix
+            merge (dstLab, 3, dst);
+            // and convert back to BGR
+            cvtColor(dst,src,COLOR_Lab2BGR);
+        }
+        // Space YCX
+        else if(space == 4){
+            // convert to YCrCb
+            cvtColor(src,dst,COLOR_BGR2YCrCb);
+            // split channels
+            split (dst, dstYCX);
+            // then, we operate in the Val channel
+            imgChannelStretch(dstYCX[channel], dstYCX[channel], min_percent, max_percent); 
+            // merge back into a single matrix
+            merge (dstYCX, 3, dst);
+            // and convert back to BGR
+            cvtColor(dst,src,COLOR_Lab2BGR);
+        }
+        else{cout << "Option " << c << " not recognized, skipping..." << endl;}
+
+
+    //     switch (c)
+    //     {
+    //         case 'B':   // stretch Blue  channel of RGB space
+    //             // at this point the data is supposed to be already in BGR
+    //             split (src, srcBGR);
+    //             // then, we operate in the BLUE channel
+    //             imgChannelStretch(srcBGR[0], srcBGR[0], min_percent, max_percent); 
+    //             //equalizeHist (srcBGR[0], srcBGR[0]);
+    //             merge (srcBGR, 3, src);
+    //             break;
+    //         case 'G':   // stretch Green channel of RGB space
+    //             // at this point the data is supposed to be already in BGR
+    //             split (src, srcBGR);
+    //             // then, we operate in the RED channel
+    //             imgChannelStretch(srcBGR[1], srcBGR[1], min_percent, max_percent); 
+    //             // equalizeHist (srcBGR[1], srcBGR[1]);
+    //             merge (srcBGR, 3, src);
+    //             break;
+    //         case 'R':   // stretch Red  channel of RGB space
+    //             // at this point the data is supposed to be already in BGR
+    //             split (src, srcBGR);
+    //             // then, we operate in the RED channel
+    //             imgChannelStretch(srcBGR[2], srcBGR[2], min_percent, max_percent); 
+    //             merge (srcBGR, 3, src);
+    //             break;
+
+    //         case 'H':   // stretch Hue  channel of HSV space
+    //             // convert to HSV
+    //             cvtColor(src,dst,COLOR_BGR2HSV);
+    //             // split channels
+    //             split (dst, dstHSV);
+    //             // then, we operate in the Hue channel
+    //             imgChannelStretch(dstHSV[0], dstHSV[0], min_percent, max_percent); 
+    //             // merge back into a single matrix
+    //             merge (dstHSV, 3, dst);
+    //             // and convert back to BGR
+    //             cvtColor(dst,src,COLOR_HSV2BGR);
+    //             break;
+    //         case 'S':   // stretch Saturation channel of HSV space
+    //             // convert to HSV
+    //             cvtColor(src,dst,COLOR_BGR2HSV);
+    //             // split channels
+    //             split (dst, dstHSV);
+    //             // then, we operate in the Sat channel
+    //             imgChannelStretch(dstHSV[1], dstHSV[1], min_percent, max_percent); 
+    //             // merge back into a single matrix
+    //             merge (dstHSV, 3, dst);
+    //             // and convert back to BGR
+    //             cvtColor(dst,src,COLOR_HSV2BGR);
+    //             break;
+    //         case 'V':   // stretch Value channel of HSV space
+    //             // convert to HSV
+    //             cvtColor(src,dst,COLOR_BGR2HSV);
+    //             // split channels
+    //             split (dst, dstHSV);
+    //             // then, we operate in the Val channel
+    //             imgChannelStretch(dstHSV[2], dstHSV[2], min_percent, max_percent); 
+    //             // merge back into a single matrix
+    //             merge (dstHSV, 3, dst);
+    //             // and convert back to BGR
+    //             cvtColor(dst,src,COLOR_HSV2BGR);
+    //             break;
+
+    //         case 'h':
+    //             // convert to HLS
+    //             cvtColor(src,dst,COLOR_BGR2HLS);
+    //             // split channels
+    //             split (dst, dstHLS);
+    //             // then, we operate in the Val channel
+    //             imgChannelStretch(dstHLS[0], dstHLS[0], min_percent, max_percent); 
+    //             // merge back into a single matrix
+    //             merge (dstHLS, 3, dst);
+    //             // and convert back to BGR
+    //             cvtColor(dst,src,COLOR_HLS2BGR);
+    //             break;
+    //         case 'l':
+    //             // convert to HLS
+    //             cvtColor(src,dst,COLOR_BGR2HLS);
+    //             // split channels
+    //             split (dst, dstHLS);
+    //             // then, we operate in the S channel
+    //             imgChannelStretch(dstHLS[1], dstHLS[1], min_percent, max_percent); 
+    //             // merge back into a single matrix
+    //             merge (dstHSV, 3, dst);
+    //             // and convert back to BGR
+    //             cvtColor(dst,src,COLOR_HLS2BGR);
+    //             break;
+    //         case 's':
+    //             // convert to HLS
+    //             cvtColor(src,dst,COLOR_BGR2HLS);
+    //             // split channels
+    //             split (dst, dstHLS);
+    //             // then, we operate in the Val channel
+    //             imgChannelStretch(dstHLS[2], dstHLS[2], min_percent, max_percent); 
+    //             // merge back into a single matrix
+    //             merge (dstHLS, 3, dst);
+    //             // and convert back to BGR
+    //             cvtColor(dst,src,COLOR_HLS2BGR);
+    //             break;
+
+    //         case 'L':
+    //             // convert to L.a.b
+    //             cvtColor(src,dst,COLOR_BGR2Lab);
+    //             // split channels
+    //             split (dst, dstLab);
+    //             // then, we operate in the Val channel
+    //             imgChannelStretch(dstLab[0], dstLab[0], min_percent, max_percent); 
+    //             // merge back into a single matrix
+    //             merge (dstLab, 3, dst);
+    //             // and convert back to BGR
+    //             cvtColor(dst,src,COLOR_Lab2BGR);
+    //             break;
+    //         case 'a':
+    //             // convert to L.a.b
+    //             cvtColor(src,dst,COLOR_BGR2Lab);
+    //             // split channels
+    //             split (dst, dstLab);
+    //             // then, we operate in the Val channel
+    //             imgChannelStretch(dstLab[1], dstLab[1], min_percent, max_percent); 
+    //             // merge back into a single matrix
+    //             merge (dstLab, 3, dst);
+    //             // and convert back to BGR
+    //             cvtColor(dst,src,COLOR_Lab2BGR);
+    //             break;
+    //         case 'b':
+    //             // convert to L.a.b
+    //             cvtColor(src,dst,COLOR_BGR2Lab);
+    //             // split channels
+    //             split (dst, dstLab);
+    //             // then, we operate in the Val channel
+    //             imgChannelStretch(dstLab[2], dstLab[2], min_percent, max_percent); 
+    //             // merge back into a single matrix
+    //             merge (dstLab, 3, dst);
+    //             // and convert back to BGR
+    //             cvtColor(dst,src,COLOR_Lab2BGR);
+    //             break;
+
+    //         case 'Y':
+    //             // convert to YCrCb
+    //             cvtColor(src,dst,COLOR_BGR2YCrCb);
+    //             // split channels
+    //             split (dst, dstYCX);
+    //             // then, we operate in the Val channel
+    //             imgChannelStretch(dstYCX[0], dstYCX[0], min_percent, max_percent); 
+    //             // merge back into a single matrix
+    //             merge (dstYCX, 3, dst);
+    //             // and convert back to BGR
+    //             cvtColor(dst,src,COLOR_Lab2BGR);
+    //             break;
+    //         case 'C':
+    //             // convert to YCrCb
+    //             cvtColor(src,dst,COLOR_BGR2YCrCb);
+    //             // split channels
+    //             split (dst, dstYCX);
+    //             // then, we operate in the Val channel
+    //             imgChannelStretch(dstYCX[1], dstYCX[1], min_percent, max_percent); 
+    //             // merge back into a single matrix
+    //             merge (dstYCX, 3, dst);
+    //             // and convert back to BGR
+    //             cvtColor(dst,src,COLOR_Lab2BGR);
+    //             break;
+    //         case 'X':
+    //             // convert to YCrCb
+    //             cvtColor(src,dst,COLOR_BGR2YCrCb);
+    //             // split channels
+    //             split (dst, dstYCX);
+    //             // then, we operate in the Val channel
+    //             imgChannelStretch(dstYCX[2], dstYCX[2], min_percent, max_percent); 
+    //             // merge back into a single matrix
+    //             merge (dstYCX, 3, dst);
+    //             // and convert back to BGR
+    //             cvtColor(dst,src,COLOR_Lab2BGR);
+    //             break;
+
+    //         default:
+    //             cout << "Option " << c << " not recognized, skipping..." << endl;
+    //             break;
+    //    }
     }
 
     namedWindow( dst_window, WINDOW_AUTOSIZE);
