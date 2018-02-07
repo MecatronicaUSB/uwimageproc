@@ -43,7 +43,7 @@ endif()
 
 # Declare the executable target built from your sources
 if(CUDA_FOUND)
-  option(USE_GPU "use cpu" ON)
+  option(FOUND_CUDA "use cpu" ON)
   configure_file(scripts/histretch.cpp.in histretch.cpp @ONLY)
   message(STATUS "Configuring for GPU version.")
   file(GLOB histretch-files
@@ -59,7 +59,7 @@ if(CUDA_FOUND)
   # Link your application with OpenCV libraries
 target_link_libraries(histretch ${OpenCV_LIBS} ${CUDA_LIBRARIES})
 else()
-  option(USE_GPU "use cpu" OFF)
+  option(FOUND_CUDA "use gpu" OFF)
   configure_file(scripts/histretch.cpp.in histretch.cpp @ONLY)
   message(STATUS "Configuring for non-GPU version.")
   message(STATUS "	Expect a slower speed...")

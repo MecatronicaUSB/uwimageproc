@@ -67,7 +67,11 @@ void imgChannelStretch(cv::Mat imgOriginal, cv::Mat imgStretched, int lowerPerce
 //        0 and 100, and lowerPercentile must be smaller than
 //        higherPercentile
 
+void imgChannelStretchGPU(cv::cuda::GpuMat imgOriginal, cv::cuda::GpuMat imgStretched, int lowerPercentile, int higherPercentile);
+
 int numChannel(char c);
 
 int numSpace(char c);
+
+
 #endif

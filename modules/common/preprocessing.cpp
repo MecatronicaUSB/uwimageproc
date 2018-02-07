@@ -23,6 +23,13 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
+// CUDA libraries
+#include <opencv2/cudafilters.hpp>
+#include "opencv2/cudafeatures2d.hpp"
+#include "opencv2/xfeatures2d/cuda.hpp"
+#include "opencv2/cudaimgproc.hpp"
+#include "opencv2/cudaarithm.hpp"
+
 
 void getHistogram(cv::Mat img, int *histogram){    
 	int i = 0, j = 0;
@@ -89,9 +96,9 @@ void printHistogram(int histogram[256], std::string filename, cv::Scalar color){
 void imgChannelStretch(cv::Mat imgOriginal, cv::Mat imgStretched, int lowerPercentile, int higherPercentile){
     // Computing the histograms
     int histogram[256];
-//    cout << "iCS: Calling getHistogram" << endl;
+    // cout << "iCS: Calling getHistogram" << endl;
     getHistogram(imgOriginal, histogram);
-//    printHistogram(histogram, "input.jpg", 255);
+    //printHistogram(histogram, "input.jpg", 255);
 
     // Computing the percentiles. We force invalid values as initial values (just in case)
     int channelLowerPercentile = -1, channelHigherPercentile = -1;
@@ -106,7 +113,7 @@ void imgChannelStretch(cv::Mat imgOriginal, cv::Mat imgStretched, int lowerPerce
 	// This is some fashion of CFD: cumulative function distribution
 //    cout << "iCS: Computing percentiles" << endl;
 	while ( sum < higherPercentile * normImgSize ){
-        if(sum < lowerPercentile * normImgSize) channelLowerPercentile++; //TODO: check if missing "lowerPercentile"
+        if(sum < lowerPercentile * normImgSize) channelLowerPercentile++; 
         channelHigherPercentile++;
         sum += histogram[i];
         i++;
@@ -123,19 +130,77 @@ void imgChannelStretch(cv::Mat imgOriginal, cv::Mat imgStretched, int lowerPerce
     cout << "iCS: Applying stretch" << endl;//*/
     int j;
     float m;
-    cv::Scalar b;
+    //cv::Scalar b = channelLowerPercentile;
     m = 255.0 / ( channelHigherPercentile - channelLowerPercentile );
-    imgStretched -= b;
+    imgStretched -= channelLowerPercentile;
     imgStretched *= m;
-/*    namedWindow( src_window, cv::WINDOW_AUTOSIZE);
+
+
+    //namedWindow( src_window, cv::WINDOW_AUTOSIZE);
 //    imshow (src_window, imgStretched);
 //    cv::waitKey(0);
 
-//    getHistogram(imgStretched, histogram);
+    getHistogram(imgStretched, histogram);
 //    cout << "iCS: exporting output histogram to disk" << endl;
-//    printHistogram(histogram, "output.jpg", 255);
-//    cout << "iCS: done..." << endl;//*/
+    printHistogram(histogram, "outputCPU.jpg", 255);
+//    cout << "iCS: done..." << endl;//
 }
+
+// Now it will operate in a single channel of the provided image. So, future implementations will require a function call per channel (still faster)
+void imgChannelStretchGPU(cv::cuda::GpuMat imgOriginalGPU, cv::cuda::GpuMat imgStretchedGPU, int lowerPercentile, int higherPercentile){
+    cv::Mat Original;
+    imgOriginalGPU.download(Original);
+
+    // Computing the histograms
+    int histogram[256];
+    // cout << "iCS: Calling getHistogram" << endl;
+    getHistogram(Original, histogram);
+    // printHistogram(histogram, "input.jpg", 255);
+
+    // Computing the percentiles. We force invalid values as initial values (just in case)
+    int channelLowerPercentile = -1, channelHigherPercentile = -1;
+    int height = Original.size().height;
+    int width = Original.size().width;
+    // Channel percentiles
+    int i = 0;
+    float sum=0;
+	// Added aux var to reduce img.methods calls
+	float normImgSize = height * width / 100.0;
+	// while we don't reach the highPercentile threshold...    
+	// This is some fashion of CFD: cumulative function distribution
+//    cout << "iCS: Computing percentiles" << endl;
+	while ( sum < higherPercentile * normImgSize ){
+        if(sum < lowerPercentile * normImgSize) channelLowerPercentile++; 
+        channelHigherPercentile++;
+        sum += histogram[i];
+        i++;
+    }
+
+/*    const char* src_window = "Source image";
+    const char* dst_window = "Destination image";
+    namedWindow( src_window, cv::WINDOW_AUTOSIZE);
+    imshow (src_window, imgOriginal);
+    cv::waitKey(0);
+
+    cout << "iCS: HP: " << channelHigherPercentile << " LP: " << channelLowerPercentile << endl;
+
+    cout << "iCS: Applying stretch" << endl;//*/
+    double m;
+    double b = (double)channelLowerPercentile;
+    m = 255.0 / ( channelHigherPercentile - channelLowerPercentile );
+    imgStretchedGPU.convertTo(imgStretchedGPU, imgStretchedGPU.type(), m, -b);
+
+//    namedWindow( src_window, cv::WINDOW_AUTOSIZE);
+//    imshow (src_window, imgStretched);
+//    cv::waitKey(0);
+
+    imgStretchedGPU.download(Original);
+    getHistogram(Original, histogram);
+//    cout << "iCS: exporting output histogram to disk" << endl;
+    printHistogram(histogram, "outputGPU.jpg", 255);
+//    cout << "iCS: done..." << endl;//
+}
+
 
 int numChannel(char c){
     if(c == 'R' || c == 'H' || c == 'h' || c == 'L' || c == 'Y' ) return 0;  
@@ -151,4 +216,8 @@ int numSpace(char c){
     if(c == 'L' || c == 'a' || c == 'b' ) return 3;  
     if(c == 'Y' || c == 'C' || c == 'X' ) return 4;
     return -1;
+}
+
+void deactivateCUDA(){
+    #undef USE_CUDA
 }
