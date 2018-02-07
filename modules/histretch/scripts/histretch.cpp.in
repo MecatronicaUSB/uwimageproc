@@ -15,6 +15,8 @@
 /* Jose Cappelletto - cappelletto@usb.ve			                */
 /* Collaborators:                                                   */
 /* Armando Longart                      							*/
+/* Fabio Morales                                                    */
+/* Victor Garcia                                                    */
 /********************************************************************/
 
 #define ABOUT_STRING "Histogram Stretching tool with channel selection v0.4"
