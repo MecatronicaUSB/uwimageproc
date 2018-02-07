@@ -15,7 +15,10 @@
 /* Jose Cappelletto - cappelletto@usb.ve			                */
 /* Collaborators:                                                   */
 /* Victor Garcia - victorygarciac@gmail.com                         */
+/* Fabio Morales -                                                  */
 /********************************************************************/
+
+#define ABOUT_STRING "Histogram Stretching tool with channel selection v0.4"
 
 ///Basic C and C++ libraries
 #include <iostream>
@@ -116,6 +119,10 @@ int main(int argc, char *argv[]) {
     CommandLineParser cvParser(argc, argv, keys);
     cvParser.about("videostrip module v0.3");	//adds "about" information to the parser method
 
+    //**************************************************************************
+    cout << ABOUT_STRING << endl;
+    cout << "Built with OpenCV " << CV_VERSION << endl;
+
 	//if the number of arguments is lower than 3, or contains "help" keyword, then we show the help
 	if (argc < 3 || cvParser.has("help")) {
         cout << "Automatically extract video frames for 2D mosaic generation or 3D model reconstruction" << endl;
@@ -163,7 +170,6 @@ int main(int argc, char *argv[]) {
 
     //**************************************************************************
     int nCuda = - 1;    //<Defines number of detected CUDA devices. By default, -1 acting as error value
-    cout << "Built with OpenCV " << CV_VERSION << endl;
 #ifdef USE_GPU
     /* CUDA */
     // TODO: read about possible failure at runtime when calling CUDA methods in non-CUDA hardware.
@@ -178,7 +184,7 @@ int main(int argc, char *argv[]) {
     else {
 #undef USE_GPU
         cout << "No CUDA device detected" << endl;
-        cout << "Exiting... use non-GPU version instead" << endl;
+        cout << "Expect a degraded performance" << endl;
     }
 #endif
     // TODO: How to operate when multiple CUDA devices are detected?

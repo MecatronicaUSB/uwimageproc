@@ -11,6 +11,6 @@ x Clone repo into bitbucket por private developments
 - Create modules:
 	. Dehaze
 	. ACLAHE
-	. SCB
+	. SCB	-> meant to be implemented via histretch
 	. histretch
 	. videostrip
