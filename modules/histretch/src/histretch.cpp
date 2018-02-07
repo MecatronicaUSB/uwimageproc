@@ -75,6 +75,10 @@ int main(int argc, char *argv[]) {
     CommandLineParser cvParser(argc, argv, keys);
     cvParser.about(ABOUT_STRING);	//adds "about" information to the parser method
 
+    //**************************************************************************
+    cout << ABOUT_STRING << endl;
+    cout << "Built with OpenCV " << CV_VERSION << endl;
+
 	//if the number of arguments is lower than 3, or contains "help" keyword, then we show the help
 	if (argc < 3 || cvParser.has("help")) {
         cout << "C++ implementation of Histogram Stretching for specific channels of input image" << endl;
@@ -111,9 +115,6 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    //**************************************************************************
-    cout << ABOUT_STRING << endl;
-    cout << "Built with OpenCV " << CV_VERSION << endl;
 
     //**************************************************************************
     #ifdef FOUND_CUDA
@@ -121,6 +122,7 @@ int main(int argc, char *argv[]) {
     #endif
 
     int nCuda = - 1;    //<Defines number of detected CUDA devices. By default, -1 acting as error value
+<<<<<<< HEAD
     if(CUDA_ON){
         /* CUDA */
         // TODO: read about possible failure at runtime when calling CUDA methods in non-CUDA hardware.
@@ -144,6 +146,22 @@ int main(int argc, char *argv[]) {
             cout << "No CUDA device detected" << endl;
             cout << "Exiting... use non-GPU version instead" << endl;
         }
+=======
+#ifdef USE_GPU
+    /* CUDA */
+    // TODO: read about possible failure at runtime when calling CUDA methods in non-CUDA hardware.
+    // CHECK whether it is possible with try-catch pair
+    nCuda = cuda::getCudaEnabledDeviceCount();	// we try to detect any existing CUDA device
+    cuda::DeviceInfo deviceInfo;
+    if (nCuda > 0){
+        cout << "CUDA enabled devices detected: " << deviceInfo.name() << endl;
+        cuda::setDevice(0);
+    }
+    else {
+#undef USE_GPU
+        cout << "No CUDA device detected" << endl;
+        cout << "Expect a degraded performance" << endl;
+>>>>>>> 83dbd0b5cc501c9bfe04ff43d9926c8048292185
     }
 
     cout << "***************************************" << endl;

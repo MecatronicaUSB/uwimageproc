@@ -4,6 +4,7 @@
  * VERSION:                                 *
  * AUTHORS: Victor García                   *
  * MODIFIED BY: José Cappelletto            *
+ *              Fabio Morales               *
  ********************************************/
 
 /*
@@ -128,6 +129,8 @@ void imgChannelStretch(cv::Mat imgOriginal, cv::Mat imgStretched, int lowerPerce
     cout << "iCS: HP: " << channelHigherPercentile << " LP: " << channelLowerPercentile << endl;
 
     cout << "iCS: Applying stretch" << endl;//*/
+
+    //TODO: This section can be ported almost inmediatly to GPU
     int j;
     float m;
     //cv::Scalar b = channelLowerPercentile;
