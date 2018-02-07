@@ -46,13 +46,13 @@ using namespace std;
 double t;	// Timing monitor
 
 /// CUDA specific libraries
-//#ifdef FOUND_CUDA
-    #include <opencv2/cudafilters.hpp>
-    #include "opencv2/cudafeatures2d.hpp"
-    #include "opencv2/xfeatures2d/cuda.hpp"
-    #include "opencv2/cudaimgproc.hpp"
-    #include "opencv2/cudaarithm.hpp"
-//#endif
+#ifdef FOUND_CUDA
+#include <opencv2/cudafilters.hpp>
+#include "opencv2/cudafeatures2d.hpp"
+#include "opencv2/xfeatures2d/cuda.hpp"
+#include "opencv2/cudaimgproc.hpp"
+#include "opencv2/cudaarithm.hpp"
+#endif
 
 /*!
 	@fn		int main(int argc, char* argv[])
@@ -74,6 +74,10 @@ int main(int argc, char *argv[]) {
 
     CommandLineParser cvParser(argc, argv, keys);
     cvParser.about(ABOUT_STRING);	//adds "about" information to the parser method
+
+    //**************************************************************************
+    cout << ABOUT_STRING << endl;
+    cout << "Built with OpenCV " << CV_VERSION << endl;
 
 	//if the number of arguments is lower than 3, or contains "help" keyword, then we show the help
 	if (argc < 3 || cvParser.has("help")) {
@@ -111,9 +115,6 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    //**************************************************************************
-    cout << ABOUT_STRING << endl;
-    cout << "Built with OpenCV " << CV_VERSION << endl;
 
     //**************************************************************************
     #ifdef FOUND_CUDA

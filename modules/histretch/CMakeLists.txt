@@ -8,9 +8,9 @@ project(histretch)
 # to the absolute path to the directory containing OpenCVConfig.cmake file
 # via the command line or GUI
 find_package(OpenCV REQUIRED
-NO_MODULE
-PATHS /usr/local
-NO_DEFAULT_PATH)
+  NO_MODULE
+  PATHS /usr/local
+  NO_DEFAULT_PATH)
 
 # If the package has been found, several variables will
 # be set, you can find the full list with descriptions
@@ -42,6 +42,7 @@ if(CMAKE_VERSION VERSION_LESS "2.8.11")
 endif()
 
 # Declare the executable target built from your sources
+# If detect CUDA, then select GPU implementation as prefered method
 if(CUDA_FOUND)
   option(FOUND_CUDA "use cpu" ON)
   configure_file(scripts/histretch.cpp.in histretch.cpp @ONLY)
@@ -76,5 +77,3 @@ else()
   # Link your application with OpenCV libraries
   target_link_libraries(histretch ${OpenCV_LIBS})
 endif(CUDA_FOUND)
-
-
