@@ -6,16 +6,6 @@ Current OpenCV 3.2 implementation uses GPU acceleration for channel split/merge 
 
 Based on A. Longart Python prototype, Diego Peña, Fabio Morales & Victor García percentile based approach, and OpenCV online documentation.
 
-        cout << "Complete options are:" << endl;
-        cout << "\t-c=R|G|B\tfor RGB space" << endl;
-        cout << "\t-c=H|S|V\tfor HSV space" << endl;
-        cout << "\t-c=h|s|l\tfor HSL space" << endl;
-        cout << "\t-c=L|a|b\tfor Lab space" << endl;
-        cout << "\t-c=Y|C|X\tfor YCrCb space" << endl;
-        cout << "\t-cuda=0 or -cuda=1 (CUDA ON: 1, CUDA OFF: 0, if available)" << endl;
-        cout << endl << "\tExample:" << endl;
-
-
 The provided **cmake** file autodetect if CUDA is present, and enable GPU support.
 
 ## Getting Started
@@ -45,8 +35,6 @@ make
 
 For detailed usage information and available options, please run the module without arguments or with 'help'. It can be run directly from console as:
 
-        "\t" << endl << endl;
-
 ```
 $ histretch -c=HV input.jpg output.jpg -cuda=0 -time=1
 ```
@@ -59,7 +47,7 @@ This will open 'input.jpg' file, operate on the 'H' and 'V' channels, and write 
 
 ## Contributing
 
-TBA
+See [CONTRIBUTING](https://github.com/MecatronicaUSB/uwimageproc/tree/histretchGPU#contributing) guidelines for the project.
 
 ## Versioning
 
