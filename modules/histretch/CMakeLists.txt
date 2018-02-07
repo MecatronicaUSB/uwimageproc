@@ -45,12 +45,10 @@ endif()
 # If detect CUDA, then select GPU implementation as prefered method
 if(CUDA_FOUND)
   option(FOUND_CUDA "use cpu" ON)
-  configure_file(scripts/histretch.cpp.in histretch.cpp @ONLY)
+  configure_file(scripts/histretch.cpp.in ../src/histretch.cpp @ONLY)
   message(STATUS "Configuring for GPU version.")
   file(GLOB histretch-files
-    "src/*.h"
-    "src/*.hxx"
-    "build/*.cpp" 
+    "src/histretch.cpp"
     "../common/*.cpp"	# to be changed with new directory structure
     "../common/*.h"
     "../common/*.hxx"

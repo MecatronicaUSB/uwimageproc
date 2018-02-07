@@ -45,7 +45,7 @@ using namespace std;
 
 // Time measurements
 #define _VERBOSE_ON_
-double t;	// Timing monitor
+double t ;	// Timing monitor
 
 /// CUDA specific libraries
 #ifdef FOUND_CUDA
@@ -71,8 +71,9 @@ int main(int argc, char *argv[]) {
             "{@input |<none>  | Input image file}"    // input image is the first argument (positional)
                     "{@output |<none> | Output image file}" // output prefix is the second argument (positional)
                     "{c       |r      | Channel to apply histogram equalization}"
-                    "{cuda    |       | Use CUDA or not (CUDA ON: 1, CUDA OFF: 0)}"
-                    "{help h usage ?  |       | show this help message}";      // optional, show help optional
+                        "{cuda    |       | Use CUDA or not (CUDA ON: 1, CUDA OFF: 0)}"         // Use CUDA (if available) or not
+                            "{time    |       | Show time measurements or not (ON: 1, OFF: 0)}" // Show time measurements or not
+                    "{help h usage ?  |       | show this help message}";         // optional, show help optional
 
     CommandLineParser cvParser(argc, argv, keys);
     cvParser.about(ABOUT_STRING);	//adds "about" information to the parser method
@@ -96,7 +97,7 @@ int main(int argc, char *argv[]) {
         cout << "\t-c=Y|C|X\tfor YCrCb space" << endl;
         cout << "\t-cuda=0 or -cuda=1 (CUDA ON: 1, CUDA OFF: 0, if available)" << endl;
         cout << endl << "\tExample:" << endl;
-        cout << "\t$ histretch -c=HV input.jpg output.jpg" << endl;
+        cout << "\t$ histretch -c=HV input.jpg output.jpg -cuda=0 -time=1" << endl;
         cout <<
         "\tThis will open 'input.jpg' file, operate on the 'H' and 'V' channels, and write it in 'output.jpg'" << endl << endl;
         return 0;
@@ -105,10 +106,11 @@ int main(int argc, char *argv[]) {
     String InputFile = cvParser.get<cv::String>(0);		//String containing the input file path+name from cvParser function
     String OutputFile = cvParser.get<cv::String>(1);	//String containing the output file template from cvParser function
     ostringstream OutputFileName;						// output string that will contain the desired output file name
+    String implementation;
 
-    // TODO: still unable to correctly parse the argument (in a non-positional way)
     String cChannel = cvParser.get<cv::String>("c");	// gets argument -c=x, where 'x' is the image channel
     int CUDA = cvParser.get<int>("cuda");	            // gets argument -cuda=x, where 'x' define to use CUDA or not
+    int Time = cvParser.get<int>("time");	            // gets argument -time=x, where 'x' define to show time execution or not
     bool CUDA_ON = false;
 
 	// Check if occurred any error during parsing process
@@ -117,44 +119,43 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-
     //**************************************************************************
     #ifdef FOUND_CUDA
         CUDA_ON = true;
     #endif
 
-    int nCuda = - 1;    //<Defines number of detected CUDA devices. By default, -1 acting as error value
+    int nCuda = - 1;    // Defines number of detected CUDA devices. By default, -1 acting as error value
     if(CUDA_ON){
-        /* CUDA */
-        // TODO: read about possible failure at runtime when calling CUDA methods in non-CUDA hardware.
-        // CHECK whether it is possible with try-catch pair
 
-        nCuda = cuda::getCudaEnabledDeviceCount();	// we try to detect any existing CUDA device
+        nCuda = cuda::getCudaEnabledDeviceCount();	// Try to detect any existing CUDA device
         // Deactivate CUDA from parse
-        if (CUDA == 0){
+        if (CUDA == 0){            
             CUDA_ON = false;
+            implementation = "CPU";
             cout << "CUDA deactivated" << endl;
             cout << "Exiting... use non-GPU version instead" << endl;
         }
         // Find CUDA devices
         else if (nCuda > 0){
             cuda::DeviceInfo deviceInfo;
+            implementation = "GPU";
             cout << "CUDA enabled devices detected: " << deviceInfo.name() << endl;
             cuda::setDevice(0);
         }
         else {
             CUDA_ON = false;
+            implementation = "CPU";
             cout << "No CUDA device detected" << endl;
             cout << "Exiting... use non-GPU version instead" << endl;
         }
     }
 
+    //**************************************************************************
     cout << "***************************************" << endl;
     cout << "Input: " << InputFile << endl;
     cout << "Output: " << OutputFile << endl;
     cout << "Channel: " << cChannel  << endl;
 
-    //**************************************************************************
     Mat src, dst;
     const char* src_window = "Source image";
     const char* dst_window = "Destination image";
@@ -169,19 +170,17 @@ int main(int argc, char *argv[]) {
 
     cout << "Applying " << num_convert << " histretch" << endl;
 
-    // After each operation, the result is merged back into 'src' matrix
-    // After several consecutive operations, there will be some image degradation due to rounding
-    // TODO: employ a floating representation for the intermediate matrix to reduce rounding loss
-    
+    // Start time measurement
+    t = (double) getTickCount();
+
     // GPU Implementation
     if(CUDA_ON){
-        cout << "USING CUDA" << endl;
         GpuMat srcGPU, dstGPU;
         GpuMat dstSpacesGPU[6][3];
         Mat dstSpaces[6][3];
 
         srcGPU.upload(src);
-        dstGPU.upload(dst); 
+        dstGPU.upload(dst);
 
         // Now, according to parameters provided at CLI calling time, we must split and process the image
         for (int nc=0; nc<num_convert; nc++){
@@ -223,7 +222,6 @@ int main(int argc, char *argv[]) {
     }
     // CPU Implementation
     if(!CUDA_ON){
-        cout << "USING CPU" << endl;
         Mat dstSpaces[6][3];
         // Now, according to parameters provided at CLI calling time, we must split and process the image
         for (int nc=0; nc<num_convert; nc++){
@@ -261,21 +259,20 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    //  End time measurement (Showing time results is optional)
+    if( Time == 1 ){
+        t = 1000 * ((double) getTickCount() - t) / getTickFrequency();
+        cout << endl << "Execution Time "<< implementation << " :" << t << " ms " << endl;
+        t = (double) getTickCount();
+    }
+
     namedWindow( dst_window, WINDOW_AUTOSIZE);
-
     cout << "hS: showing resulting window" << endl;
-
     imshow (dst_window, src);
     cout << "hS: saving to disk" << endl;
-
-#ifdef _VERBOSE_ON_
-    t = 1000 * ((double) getTickCount() - t) / getTickFrequency();
-    cout << endl << "Execution Time CPU: " << t << " ms " << endl;
-    t = (double) getTickCount();
-#endif
-
+    // Saving output file in specified directory
     imwrite (OutputFile, src);
-    waitKey(0);
 
+    waitKey(0);
 	return 0;
 }
