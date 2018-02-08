@@ -1,9 +1,9 @@
 /********************************************************************/
-/* Project: uwimageproc								                */
-/* Module: 	template								                */
-/* File: 	sample.cpp                                              */
-/* Created:		30/01/2017                                          */
-/* Edited:		20/01/2018, 07:12 PM                                */
+/* Project: uwimageproc					            */
+/* Module: 	template				            */
+/* File: 	sample.cpp                                          */
+/* Created:		30/01/2017                                  */
+/* Edited:		20/01/2018, 07:12 PM                        */
 /* Description:						                                
 	Module template, including basic dependencies and CLI argument
 parsing*/
@@ -11,9 +11,9 @@ parsing*/
 
 /********************************************************************/
 /* Created by:                                                      */
-/* Jose Cappelletto - cappelletto@usb.ve			                */
-/* Collaborators:                                                   */
-/* Victor Garcia - victorygarciac@gmail.com							*/
+/* Jose Cappelletto (@cappelletto)                                  */
+/* Based on:                                                        */
+/* Original Python implementation by Carlos Sanoja (@CarSanoja)	    */
 /********************************************************************/
 
 ///Basic C and C++ libraries
@@ -25,6 +25,8 @@ parsing*/
 
 /// OpenCV libraries. May need review for the final release
 #include <opencv2/core.hpp>
+
+#define ABOUT_STRING "ACLAHE C++ module v0.1"
 
 // #define _VERBOSE_ON_
 // C++ namespaces
@@ -46,31 +48,26 @@ int main(int argc, char *argv[]) {
     String keys =
             "{@input |<none>  | Input video path}"    // input image is the first argument (positional)
                     "{@output |<none> | Prefix for output file}" // output prefix is the second argument (positional)
-                    "{p      |0.95  | A float number (0.0 to 1.0) with a default value}"
-                    "{k      |      | An intenger number}"
                     "{help h usage ?  |       | show this help message}";      // optional, show help optional
 
     CommandLineParser cvParser(argc, argv, keys);
-    cvParser.about("sample module v0.2");	//adds "about" information to the parser method
+    cvParser.about(ABOUT_STRING);	//adds "about" information to the parser method
 
 	//if the number of arguments is lower than 3, or contains "help" keyword, then we show the help
-	if (argc < 3 || cvParser.has("help")) {
-        cout << "This is a sample module to be employed as template for functional modules" << endl;
-        cout << "Receives some mandatory and other optional arguments from the command line" << endl;
+   if (argc < 3 || cvParser.has("help")) {
+        cout << "ACLAHE: a C++ implementation Automatic Contrast Limited Adaptive Histogram Equalization" << endl;
         cvParser.printMessage();
+
         cout << endl << "\tExample:" << endl;
-        cout << "\t$ template -p=0.6 -k=5 input.avi vdout_" << endl;
+        cout << "\t$ aclahe input.jpg output.jpg" << endl;
         cout <<
-        "\tThis will open 'input.avi' file, asign p=0.6 and k=5, and set output string to 'vdout_" << endl << endl;
+        "\tThis will apply ACLAHE to gray levels of 'input.jpg' image file, and save it into 'output.jg'" << endl << endl;
         return 0;
     }
 
     String InputFile = cvParser.get<cv::String>(0);		//String containing the input file path+name from cvParser function
     String OutputFile = cvParser.get<cv::String>(1);	//String containing the output file template from cvParser function
     ostringstream OutputFileName;						// output string that will contain the desired output file name
-
-    int kWindow = cvParser.get<int>("k");		// gets argument -k=WW, where WW is the size of the search window for the best frame 
-    float overlap = cvParser.get<float>("p");	// gets argument -p=OO, where OO is the desired overlap among frames
 
 	// Check if occurred any error during parsing process
     if (! cvParser.check()) {
@@ -99,9 +96,31 @@ int main(int argc, char *argv[]) {
     cout << "***************************************" << endl;
     cout << "Input: " << InputFile << endl;
     cout << "Output: " << OutputFile << endl;
-    cout << "k: " << kWindow  << endl;
-    cout << "p: " << overlap << endl;
 
+    //**************************************************************************
+	//Image reading
+    //**************************************************************************
+	//Convert image into grayscale
+	//TODO: Check if could be used another color space, as HSV (and apply aclahe to V)
+	//TODO: It seems like everybody applies Gaussian blur to image
+    //**************************************************************************
+	//Create base vector of BlockSize and ClipLimit values
+    //**************************************************************************
+	//Create container matrix with future results of entropy values for each CL/BS pair
+    //**************************************************************************
+	//Applies clahe with values of CL/BS from test vector
+    //**************************************************************************
+	//computes resulting entropy for each case
+    //**************************************************************************
+	//find the CL value with highest curvature
+    //**************************************************************************
+	//for the resulting CL*, find the BS with highest curvature on the entropy
+    //**************************************************************************
+	//for resulting CL/BS, apply classic clahe
+    //**************************************************************************
+	//transform back image
+    //**************************************************************************
+	//saves resulting image
     //**************************************************************************
 	return 0;
 }																																																											

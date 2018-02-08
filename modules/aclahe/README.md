@@ -1,4 +1,4 @@
-**uwimageproc** module for ACLAHE: Automatic Clip Limit Histrogram Equalization
+**uwimageproc** module for ACLAHE: Automatic Contrast Limited Histrogram Equalization
 This is a dev port to C++ from original Python implementation created by Carlos Sanoja (@CarSanoja)
 Port by: J. Cappelletto (@cappelletto) based on C++ module template
 
