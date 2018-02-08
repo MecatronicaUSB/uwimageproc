@@ -31,7 +31,7 @@ The current release has been developed and tested in Ubuntu 16.04 LTS 64 bits
 - [CUDA]().
 - [cmake 2.8](https://cmake.org/) - cmake making it happen again
 
-For further installation instructions, please refer to [Installation OpenCV and CUDA](INSTALL)
+For further installation instructions, please refer to [Installation OpenCV and CUDA](INSTALL.md).
 
 ## Getting Started
 
