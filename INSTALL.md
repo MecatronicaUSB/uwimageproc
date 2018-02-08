@@ -4,10 +4,17 @@ Installation step by step of the development environment OpenCV 3.2 + and contri
 
 ## Table of Contents
 - [Preparing the system](#preparing-the-system)
-- [OpenCV 3.2](#opencv-3.2)
-- [CUDA 8.0](#cuda-8.0)
-- [Installation without CUDA](#installation-without-cuda)
-- [Instalation with CUDA](#installation-with-cuda)
+<<<<<<< HEAD
+- [OpenCV 3.2](#OpenCV-3.2)
+- [CUDA 8.0](#CUDA-8.0)
+- [Installation without CUDA](#Installation-without-CUDA)
+- [Instalation with CUDA](#Instalation-with-CUDA)
+=======
+- [OpenCV 3.2](#OpenCV 3.2)
+- [CUDA 8.0](#CUDA 8.0)
+- [Installation without CUDA](#Installation without CUDA)
+- [Instalation with CUDA](#Instalation with CUDA)
+>>>>>>> 8cb8640bd2d9277cd2d5ed681d9cd02ecc64f7c9
 - [License](#license)
 
 ## Preparing the system
