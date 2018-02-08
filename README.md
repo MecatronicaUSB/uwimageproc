@@ -31,6 +31,8 @@ The current release has been developed and tested in Ubuntu 16.04 LTS 64 bits
 - [CUDA]().
 - [cmake 2.8](https://cmake.org/) - cmake making it happen again
 
+For further installation instructions, please refer to [Installation OpenCV and CUDA](INSTALL)
+
 ## Getting Started
 
 This repository provides an (increasing) collection of compatible, yet independent, underwater oriented modules for image and video. To start using this toolbox, proceed to the standard *clone* procedure:
