@@ -61,6 +61,7 @@ tar xvf opencv-3.2.0.tar.gz
 wget https://codeload.github.com/opencv/opencv_contrib/zip/master -O opencv_contrib-master.zip
 unzip opencv_contrib-master.zip
 ```
+*Specified contrib package may have some bugs when compiled against OpenCV 3.2.0*
 
 **OpenCL Support**
 ```bash
@@ -68,6 +69,7 @@ sudo apt-get install libgtkglext1 libgtkglext1-dev
 ```
 
 ### CUDA 8.0 (optional)
+The recommended version is 8.0, yet you could try with a different version.
 ```bash-
 wget https://developer.nvidia.com/compute/cuda/8.0/Prod2/local_installers/cuda-repo-ubuntu1604-8-0-local-ga2_8.0.61-1_amd64-deb
 sudo dpkg -i cuda-repo-ubuntu1604-8-0-local_8.0.44-1_amd64.deb
