@@ -16,7 +16,7 @@ An open-source toolbox of underwater video and image processing that can be empl
 ## Modules list
 - [videostrip](https://github.com/MecatronicaUSB/uwimageproc/tree/master/modules/videostrip) Automatic frame extraction for 2D mosaic and/or 3D reconstruction 
 - [bgdehaze](https://github.com/MecatronicaUSB/uwimageproc/tree/master/modules/bgdehaze) BG Haze removal for UW images
-- [aclahe](https://github.com/MecatronicaUSB/uwimageproc/tree/master/modules/aclahe) Automatic Clip-Limit AHE (CLAHE)
+- [aclahe](https://github.com/MecatronicaUSB/uwimageproc/tree/master/modules/aclahe) Automatic Contrast-Limited AHE (CLAHE)
 - [histretch](https://github.com/MecatronicaUSB/uwimageproc/tree/master/modules/histretch) Percentile based histogram stretch w/channel selection
 - Automatic 2D mosaic generation > to be moved to [mosaic](https://github.com/MecatronicaUSB/mosaic)
 - 3D sparse and dense reconstruction > to be moved to [uw-slam](https://github.com/MecatronicaUSB/uw-slam)
@@ -40,6 +40,15 @@ cd <some_directory>
 git clone https://github.com/MecatronicaUSB/uwimageproc.git
 ```
 
+Then enter the desired module and compile it:
+```bash
+cd <module_directory>
+mkdir build
+cd build
+cmake ..
+make
+```
+
 ## Software Details
 
 - Implementation done in C++, Python and/or Matlab/Octave.
@@ -58,4 +67,3 @@ Summary of contributing guidelines (based on those of OpenCV project):
 
 Copyright (c) 2017-2018 Grupo de Investigación y Desarrollo en Mecatrónica (<mecatronica@usb.ve>).
 Released under the [GNU GPLv3.0 License](LICENSE). 
-
