@@ -3,11 +3,11 @@
 Installation step by step of the development environment OpenCV 3.2 + and contrib with CUDA support for Ubuntu 16.04 x64.
 
 ## Table of Contents
-- [Preparing the system]()
-- [OpenCV 3.2]()
-- [CUDA 8.0]()
-- [Installation without CUDA]()
-- [Instalation with CUDA]()
+- [Preparing the system](#preparing-the-system)
+- [OpenCV 3.2](#opencv-32)
+- [CUDA 8.0](#cuda-80-optional)
+- [Installation without CUDA](#installation-without-cuda)
+- [Installation with CUDA](#installation-with-cuda)
 - [License](#license)
 
 ## Preparing the system
@@ -112,7 +112,7 @@ make
 sudo make install
 ```
 
-### Instalation with CUDA
+### Installation with CUDA
 ```bash
 cd opencv-3.2.0/
 mkdir build
