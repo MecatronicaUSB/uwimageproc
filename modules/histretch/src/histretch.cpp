@@ -41,7 +41,7 @@ using namespace cv;
 using namespace cv::cuda;
 using namespace std;
 
-#cmakedefine FOUND_CUDA @FOUND_CUDA@
+/* #undef FOUND_CUDA */
 
 // Time measurements
 #define _VERBOSE_ON_

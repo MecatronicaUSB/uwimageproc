@@ -44,8 +44,10 @@ endif()
 # Declare the executable target built from your sources
 # If detect CUDA, then select GPU implementation as prefered method
 if(CUDA_FOUND)
-  option(FOUND_CUDA "use cpu" ON)
+  set(FOUND_CUDA 1)
   configure_file(scripts/histretch.cpp.in ../src/histretch.cpp @ONLY)
+  configure_file(scripts/preprocessing.cpp.in ../../common/preprocessing.cpp @ONLY)
+  configure_file(scripts/preprocessing.h.in ../../common/preprocessing.h @ONLY)
   message(STATUS "Configuring for GPU version.")
   file(GLOB histretch-files
     "src/histretch.cpp"
@@ -58,14 +60,16 @@ if(CUDA_FOUND)
   # Link your application with OpenCV libraries
 target_link_libraries(histretch ${OpenCV_LIBS} ${CUDA_LIBRARIES})
 else()
-  option(FOUND_CUDA "use gpu" OFF)
-  configure_file(scripts/histretch.cpp.in histretch.cpp @ONLY)
+  set(FOUND_CUDA 0)
+  configure_file(scripts/histretch.cpp.in ../src/histretch.cpp @ONLY)
+  configure_file(scripts/preprocessing.cpp.in ../../common/preprocessing.cpp @ONLY)
+  configure_file(scripts/preprocessing.h.in ../../common/preprocessing.h @ONLY)
   message(STATUS "Configuring for non-GPU version.")
   message(STATUS "	Expect a slower speed...")
   file(GLOB histretch-files
     "src/*.h"
     "src/*.hxx"
-    "build/*.cpp" 
+    "src/histretch.cpp" 
     "../common/*.cpp"	# to be changed with new directory structure
     "../common/*.h"
     "../common/*.hxx"

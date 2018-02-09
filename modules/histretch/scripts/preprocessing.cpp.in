@@ -20,7 +20,7 @@
 	Currently being handled in a separate branch
 */
 
-/* #undef FOUND_CUDA */
+#cmakedefine FOUND_CUDA @FOUND_CUDA@
 #include "preprocessing.h"
 
 
