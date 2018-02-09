@@ -86,6 +86,8 @@ typedef struct {
 float calcOverlap(keyframe* kframe, Mat image_object);
 // See description in function definition
 float calcBlur(Mat frame);
+// See description in function definition
+float overlapArea(Mat H);
 
 // Video width and height
 int videoWidth, videoHeight;
@@ -469,9 +471,12 @@ float calcOverlap(keyframe* kframe, Mat img_object) {
 		
 		if (H.empty())	return -2.0;
 
-        float dx = fabs(H.at<double>(0, 2));
-        float dy = fabs(H.at<double>(1, 2));
-        float overlap = (videoWidth - dx) * (videoHeight - dy) / (videoWidth * videoHeight);
+        // Old overlap area calc method ----
+        // float dx = fabs(H.at<double>(0, 2));
+        // float dy = fabs(H.at<double>(1, 2));
+        // float overlap = (videoWidth - dx) * (videoHeight - dy) / (videoWidth * videoHeight);
+        
+        float overlap = overlapArea(H)/ (videoWidth * videoHeight);
 
 #ifdef _VERBOSE_ON_
         t = 1000 * ((double) getTickCount() - t) / getTickFrequency();
@@ -480,4 +485,32 @@ float calcOverlap(keyframe* kframe, Mat img_object) {
 #endif
         return overlap;
     }
+}
+
+/**
+ * @brief Function to obtain the real overlap area between transformed and reference frame
+ * @param H OpenCV Matrix containing the homography transformation
+ * @return float The normalized overlap among two given frame
+ */
+float overlapArea(Mat H){
+    vector<Point2f> points, final_points;
+
+    // initialize the initial points in the corners of the original image
+	points.push_back(Point2f(0,0));
+	points.push_back(Point2f(TARGET_WIDTH,0));
+	points.push_back(Point2f(TARGET_WIDTH,TARGET_HEIGHT));
+	points.push_back(Point2f(0,TARGET_HEIGHT));
+
+    // transform the original points by the given homography matrix
+	perspectiveTransform(points,final_points, H);
+
+    // Save the transformed points into an array for fillConvexPoly function
+    Point points_array[4] = {final_points[0], final_points[1], final_points[2], final_points[3]};
+
+    Mat mask(TARGET_HEIGHT, TARGET_WIDTH, CV_8UC1, Scalar(0,0,0));
+    // Fill the area inside the transformed points
+    fillConvexPoly( mask, points_array, 4, Scalar(255,255,255));
+
+    // The overlap area will be all the points remains in the original image rectangle 
+    return countNonZero(mask);
 }
