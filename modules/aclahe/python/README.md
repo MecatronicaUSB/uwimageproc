@@ -1,10 +1,3 @@
-**uwimageproc** module for ACLAHE: Automatic Contrast Limited Histrogram Equalization
-This is a dev port to C++ from original Python implementation created by Carlos Sanoja (@CarSanoja)
-Port by: J. Cappelletto (@cappelletto) based on C++ module template
-
-Original README.md
-------------------------------------------------------
-
 Determining Parameters of CLAHE Based on Image Entropy
 
 Implementation of Byong Seok Mi algorithm for constrast image.

@@ -25,11 +25,13 @@
 #include <opencv2/imgproc.hpp>
 
 // CUDA libraries
-#include <opencv2/cudafilters.hpp>
-#include "opencv2/cudafeatures2d.hpp"
-#include "opencv2/xfeatures2d/cuda.hpp"
-#include "opencv2/cudaimgproc.hpp"
-#include "opencv2/cudaarithm.hpp"
+#ifdef USE_GPU
+	#include <opencv2/cudafilters.hpp>
+	#include "opencv2/cudafeatures2d.hpp"
+	#include "opencv2/xfeatures2d/cuda.hpp"
+	#include "opencv2/cudaimgproc.hpp"
+	#include "opencv2/cudaarithm.hpp"
+#endif
 
 
 void getHistogram(cv::Mat img, int *histogram){    
@@ -55,7 +57,6 @@ void getHistogram(cv::Mat img, int *histogram){
         }
     }
 }
-
 
 void printHistogram(int histogram[256], std::string filename, cv::Scalar color){
     // Finding the maximum value of the histogram. It will be used to scale the
@@ -127,6 +128,7 @@ void imgChannelStretch(cv::Mat imgOriginal, cv::Mat imgStretched, int lowerPerce
 }
 
 // Now it will operate in a single channel of the provided image. So, future implementations will require a function call per channel (still faster)
+#ifdef USE_GPU
 void imgChannelStretchGPU(cv::cuda::GpuMat imgOriginalGPU, cv::cuda::GpuMat imgStretchedGPU, int lowerPercentile, int higherPercentile){
     cv::Mat Original;
     imgOriginalGPU.download(Original);
@@ -163,6 +165,7 @@ void imgChannelStretchGPU(cv::cuda::GpuMat imgOriginalGPU, cv::cuda::GpuMat imgS
     // printHistogram(histogram, "outputGPU.jpg", 255);
 
 }
+#endif
 
 int numChannel(char c){
     if(c == 'R' || c == 'H' || c == 'h' || c == 'L' || c == 'Y' ) return 0;  
