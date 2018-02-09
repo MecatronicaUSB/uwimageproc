@@ -2,29 +2,25 @@
 cmake_minimum_required(VERSION 2.8)
 
 # Define project name
-project(aclahe_project)
+project(aclahe)
 
 # Find OpenCV, you may need to set OpenCV_DIR variable
 # to the absolute path to the directory containing OpenCVConfig.cmake file
 # via the command line or GUI
-
 find_package(OpenCV REQUIRED
-NO_MODULE
-PATHS /usr/local
-NO_DEFAULT_PATH)
+  NO_MODULE
+  PATHS /usr/local
+  NO_DEFAULT_PATH)
 
 # If the package has been found, several variables will
 # be set, you can find the full list with descriptions
 # in the OpenCVConfig.cmake file.
 # Print some message showing some of them
-# At this level, it should be useful to check minimum required version or exact version
-# So far, there are still some issues with OpenCV installations included in ROS
 message(STATUS "OpenCV library status:")
 message(STATUS "    version: ${OpenCV_VERSION}")
 message(STATUS "    libraries: ${OpenCV_LIBS}")
 message(STATUS "    include path: ${OpenCV_INCLUDE_DIRS}")
 
-# Holy crap
 find_package(CUDA)
 
 if(CUDA_FOUND)
@@ -45,24 +41,38 @@ if(CMAKE_VERSION VERSION_LESS "2.8.11")
   include_directories(${OpenCV_INCLUDE_DIRS})
 endif()
 
- # Declare the executable target built from your sources
+# Declare the executable target built from your sources
+# If detect CUDA, then select GPU implementation as prefered method
 if(CUDA_FOUND)
-  option(USE_GPU "use cpu" ON)
-#  configure_file(scripts/aclahe.cpp.in aclahe.cpp @ONLY)
-# TODO: Yet to be employed to GPU/CPU implementation
+  option(FOUND_CUDA "use cpu" ON)
+#  configure_file(scripts/aclahe.cpp.in ../src/aclahe.cpp @ONLY)
   message(STATUS "Configuring for GPU version.")
-  add_executable(aclahe src/aclahe.cpp)
+  file(GLOB aclahe-files
+    "src/aclahe.cpp"
+    "../common/*.cpp"	# to be changed with new directory structure
+    "../common/*.h"
+    "../common/*.hxx"
+  ) 
+  add_executable(aclahe ${aclahe-files})
+  target_compile_options(aclahe PUBLIC -std=c++11)
   # Link your application with OpenCV libraries
 target_link_libraries(aclahe ${OpenCV_LIBS} ${CUDA_LIBRARIES})
 else()
-  option(USE_GPU "use cpu" OFF)
-#  configure_file(scripts/videostrip.cpp.in videostrip.cpp @ONLY)
+  option(FOUND_CUDA "use gpu" OFF)
+ # configure_file(scripts/aclahe.cpp.in aclahe.cpp @ONLY)
   message(STATUS "Configuring for non-GPU version.")
   message(STATUS "	Expect a slower speed...")
-  add_executable(aclahe src/aclahe.cpp)
+  file(GLOB aclahe-files
+    "src/*.h"
+    "src/*.hxx"
+    "src/aclahe.cpp"
+    "build/*.cpp" 
+    "../common/*.cpp"	# to be changed with new directory structure
+    "../common/*.h"
+    "../common/*.hxx"
+  ) 
+  add_executable(aclahe ${aclahe-files})
+  target_compile_options(aclahe PUBLIC -std=c++11)
   # Link your application with OpenCV libraries
   target_link_libraries(aclahe ${OpenCV_LIBS})
 endif(CUDA_FOUND)
-
-
-
