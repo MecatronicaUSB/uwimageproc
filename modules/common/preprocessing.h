@@ -9,8 +9,6 @@
 #ifndef HISTOGRAM_H
 #define HISTOGRAM_H
 
-/* #undef FOUND_CUDA */
-
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
@@ -20,7 +18,7 @@
 #include <sstream>
 
 // CUDA libraries
-#if FOUND_CUDA
+#if USE_GPU
 #include <opencv2/cudafilters.hpp>
 #include "opencv2/cudafeatures2d.hpp"
 #include "opencv2/xfeatures2d/cuda.hpp"
@@ -78,7 +76,7 @@ void imgChannelStretch(cv::Mat imgOriginal, cv::Mat imgStretched, int lowerPerce
 //        0 and 100, and lowerPercentile must be smaller than
 //        higherPercentile
 
-#if FOUND_CUDA
+#if USE_GPU
 /**
  * @brief GPU Implementation of transform imgOriginal so that, for each channel histogram, its
           lowerPercentile and higherPercentile values are moved to 0 and 255, respectively.

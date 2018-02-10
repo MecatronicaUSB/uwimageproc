@@ -45,9 +45,7 @@ endif()
 # If detect CUDA, then select GPU implementation as prefered method
 if(CUDA_FOUND)
   set(FOUND_CUDA 1)
-  configure_file(scripts/histretch.cpp.in ../src/histretch.cpp @ONLY)
-  configure_file(scripts/preprocessing.cpp.in ../../common/preprocessing.cpp @ONLY)
-  configure_file(scripts/preprocessing.h.in ../../common/preprocessing.h @ONLY)
+  add_definitions(-DUSE_GPU)
   message(STATUS "Configuring for GPU version.")
   file(GLOB histretch-files
     "src/histretch.cpp"
@@ -61,9 +59,6 @@ if(CUDA_FOUND)
 target_link_libraries(histretch ${OpenCV_LIBS} ${CUDA_LIBRARIES})
 else()
   set(FOUND_CUDA 0)
-  configure_file(scripts/histretch.cpp.in ../src/histretch.cpp @ONLY)
-  configure_file(scripts/preprocessing.cpp.in ../../common/preprocessing.cpp @ONLY)
-  configure_file(scripts/preprocessing.h.in ../../common/preprocessing.h @ONLY)
   message(STATUS "Configuring for non-GPU version.")
   message(STATUS "	Expect a slower speed...")
   file(GLOB histretch-files
