@@ -47,15 +47,13 @@ endif()
 
  # Declare the executable target built from your sources
 if(CUDA_FOUND)
-  option(USE_GPU "use cpu" ON)
-  configure_file(src/videostrip.cpp ../src/videostrip.cpp @ONLY)
+  # Add definition to CUDA SUPPORT
+  add_definitions(-DUSE_GPU)
   message(STATUS "Configuring for GPU version.")
   add_executable(videostrip src/videostrip.cpp)
   # Link your application with OpenCV libraries
-target_link_libraries(videostrip ${OpenCV_LIBS} ${CUDA_LIBRARIES})
+  target_link_libraries(videostrip ${OpenCV_LIBS} ${CUDA_LIBRARIES})
 else()
-  option(USE_GPU "use cpu" OFF)
-  configure_file(src/videostrip.cpp ../src/videostrip.cpp @ONLY)
   message(STATUS "Configuring for non-GPU version.")
   message(STATUS "	Expect a slower speed...")
   add_executable(videostrip src/videostrip.cpp)
