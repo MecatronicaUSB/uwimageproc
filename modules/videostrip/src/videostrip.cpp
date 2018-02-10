@@ -34,7 +34,8 @@
 #include "opencv2/calib3d.hpp"
 #include <opencv2/xfeatures2d.hpp>
 
-#cmakedefine USE_GPU
+
+// #cmakedefine USE_GPU
 
 /// CUDA specific libraries
 #ifdef USE_GPU
