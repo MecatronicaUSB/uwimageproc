@@ -48,7 +48,7 @@ endif()
  # Declare the executable target built from your sources
 if(CUDA_FOUND)
   # Add definition to CUDA SUPPORT
-  add_definitions(-DUSE_GPU)
+  add_definitions(-D USE_GPU)
   message(STATUS "Configuring for GPU version.")
   add_executable(videostrip src/videostrip.cpp)
   # Link your application with OpenCV libraries

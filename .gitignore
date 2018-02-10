@@ -4,6 +4,7 @@
 .idea
 uwimageproc
 modules/videostrip/build
+modules/histretch/build
 build
 modules/videostrip/doc
 cmake-build-debug

@@ -45,7 +45,7 @@ endif()
 # If detect CUDA, then select GPU implementation as prefered method
 if(CUDA_FOUND)
   set(FOUND_CUDA 1)
-  add_definitions(-DUSE_GPU)
+  add_definitions(-D USE_GPU)
   message(STATUS "Configuring for GPU version.")
   file(GLOB histretch-files
     "src/histretch.cpp"
