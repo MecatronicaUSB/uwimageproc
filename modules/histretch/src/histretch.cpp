@@ -41,14 +41,12 @@ using namespace cv;
 using namespace cv::cuda;
 using namespace std;
 
-/* #undef FOUND_CUDA */
-
 // Time measurements
 #define _VERBOSE_ON_
 double t ;	// Timing monitor
 
 /// CUDA specific libraries
-#if FOUND_CUDA
+#if USE_GPU
 #include <opencv2/cudafilters.hpp>
 #include "opencv2/cudafeatures2d.hpp"
 #include "opencv2/xfeatures2d/cuda.hpp"
@@ -121,7 +119,7 @@ int main(int argc, char *argv[]) {
 
     //**************************************************************************
     int nCuda = - 1;    // Defines number of detected CUDA devices. By default, -1 acting as error value
-    #if FOUND_CUDA
+    #if USE_GPU
         CUDA_ON = true;
 
         nCuda = cuda::getCudaEnabledDeviceCount();	// Try to detect any existing CUDA device
@@ -171,7 +169,7 @@ int main(int argc, char *argv[]) {
     t = (double) getTickCount();
 
     // GPU Implementation
-    #if FOUND_CUDA
+    #if USE_GPU
         GpuMat srcGPU, dstGPU;
         GpuMat dstSpacesGPU[6][3];
         Mat dstSpaces[6][3];

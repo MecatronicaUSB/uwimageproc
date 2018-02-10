@@ -20,13 +20,12 @@
 	Currently being handled in a separate branch
 */
 
-/* #undef FOUND_CUDA */
 #include "preprocessing.h"
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
 // CUDA libraries
-#ifdef USE_GPU
+#if USE_GPU
 	#include <opencv2/cudafilters.hpp>
 	#include "opencv2/cudafeatures2d.hpp"
 	#include "opencv2/xfeatures2d/cuda.hpp"
@@ -128,9 +127,8 @@ void imgChannelStretch(cv::Mat imgOriginal, cv::Mat imgStretched, int lowerPerce
 
 }
 
-#if FOUND_CUDA
+#if USE_GPU
 // Now it will operate in a single channel of the provided image. So, future implementations will require a function call per channel (still faster)
-#ifdef USE_GPU
 void imgChannelStretchGPU(cv::cuda::GpuMat imgOriginalGPU, cv::cuda::GpuMat imgStretchedGPU, int lowerPercentile, int higherPercentile){
     cv::Mat Original;
     imgOriginalGPU.download(Original);
