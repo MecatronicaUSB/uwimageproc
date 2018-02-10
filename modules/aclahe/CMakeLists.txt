@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 2.8)
 
 # Define project name
-project(histretch)
+project(aclahe)
 
 # Find OpenCV, you may need to set OpenCV_DIR variable
 # to the absolute path to the directory containing OpenCVConfig.cmake file
@@ -44,38 +44,35 @@ endif()
 # Declare the executable target built from your sources
 # If detect CUDA, then select GPU implementation as prefered method
 if(CUDA_FOUND)
-  set(FOUND_CUDA 1)
-  configure_file(scripts/histretch.cpp.in ../src/histretch.cpp @ONLY)
-  configure_file(scripts/preprocessing.cpp.in ../../common/preprocessing.cpp @ONLY)
-  configure_file(scripts/preprocessing.h.in ../../common/preprocessing.h @ONLY)
+  option(FOUND_CUDA "use cpu" ON)
+#  configure_file(scripts/aclahe.cpp.in ../src/aclahe.cpp @ONLY)
   message(STATUS "Configuring for GPU version.")
-  file(GLOB histretch-files
-    "src/histretch.cpp"
+  file(GLOB aclahe-files
+    "src/aclahe.cpp"
     "../common/*.cpp"	# to be changed with new directory structure
     "../common/*.h"
     "../common/*.hxx"
   ) 
-  add_executable(histretch ${histretch-files})
-  target_compile_options(histretch PUBLIC -std=c++11)
+  add_executable(aclahe ${aclahe-files})
+  target_compile_options(aclahe PUBLIC -std=c++11)
   # Link your application with OpenCV libraries
-target_link_libraries(histretch ${OpenCV_LIBS} ${CUDA_LIBRARIES})
+target_link_libraries(aclahe ${OpenCV_LIBS} ${CUDA_LIBRARIES})
 else()
-  set(FOUND_CUDA 0)
-  configure_file(scripts/histretch.cpp.in ../src/histretch.cpp @ONLY)
-  configure_file(scripts/preprocessing.cpp.in ../../common/preprocessing.cpp @ONLY)
-  configure_file(scripts/preprocessing.h.in ../../common/preprocessing.h @ONLY)
+  option(FOUND_CUDA "use gpu" OFF)
+ # configure_file(scripts/aclahe.cpp.in aclahe.cpp @ONLY)
   message(STATUS "Configuring for non-GPU version.")
   message(STATUS "	Expect a slower speed...")
-  file(GLOB histretch-files
+  file(GLOB aclahe-files
     "src/*.h"
     "src/*.hxx"
-    "src/histretch.cpp" 
+    "src/aclahe.cpp"
+    "build/*.cpp" 
     "../common/*.cpp"	# to be changed with new directory structure
     "../common/*.h"
     "../common/*.hxx"
   ) 
-  add_executable(histretch ${histretch-files})
-  target_compile_options(histretch PUBLIC -std=c++11)
+  add_executable(aclahe ${aclahe-files})
+  target_compile_options(aclahe PUBLIC -std=c++11)
   # Link your application with OpenCV libraries
-  target_link_libraries(histretch ${OpenCV_LIBS})
+  target_link_libraries(aclahe ${OpenCV_LIBS})
 endif(CUDA_FOUND)

@@ -9,7 +9,7 @@
 #ifndef HISTOGRAM_H
 #define HISTOGRAM_H
 
-/* #undef FOUND_CUDA */
+#cmakedefine FOUND_CUDA @FOUND_CUDA@
 
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
