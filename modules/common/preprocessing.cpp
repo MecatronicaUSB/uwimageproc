@@ -21,18 +21,6 @@
 */
 
 #include "preprocessing.h"
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
-
-// CUDA libraries
-#if USE_GPU
-	#include <opencv2/cudafilters.hpp>
-	#include "opencv2/cudafeatures2d.hpp"
-	#include "opencv2/xfeatures2d/cuda.hpp"
-	#include "opencv2/cudaimgproc.hpp"
-	#include "opencv2/cudaarithm.hpp"
-#endif
-
 
 void getHistogram(cv::Mat img, int *histogram){    
 	int i = 0, j = 0;
