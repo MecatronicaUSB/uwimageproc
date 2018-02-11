@@ -100,17 +100,15 @@ int main(int argc, char *argv[]) {
         "\tThis will open 'input.jpg' file, operate on the 'H' and 'V' channels, and write it in 'output.jpg'" << endl << endl;
         return 0;
     }
-
+    int CUDA = 0;                                       //Default option (running with CPU)
+    int Time = 0;                                       //Default option (not showing time)
     String InputFile = cvParser.get<cv::String>(0);		//String containing the input file path+name from cvParser function
     String OutputFile = cvParser.get<cv::String>(1);	//String containing the output file template from cvParser function
     ostringstream OutputFileName;						// output string that will contain the desired output file name
     String implementation;
 
     String cChannel = cvParser.get<cv::String>("c");	// gets argument -c=x, where 'x' is the image channel
-    int CUDA = cvParser.get<int>("cuda");	            // gets argument -cuda=x, where 'x' define to use CUDA or not
-    int Time = cvParser.get<int>("time");	            // gets argument -time=x, where 'x' define to show time execution or not
-    bool CUDA_ON = false;
-
+    Time = cvParser.get<int>("time");	                // gets argument -time=x, where 'x' define to show time execution or not
 	// Check if occurred any error during parsing process
     if (! cvParser.check()) {
         cvParser.printErrors();
@@ -120,25 +118,23 @@ int main(int argc, char *argv[]) {
     //**************************************************************************
     int nCuda = - 1;    // Defines number of detected CUDA devices. By default, -1 acting as error value
     #if USE_GPU
-        CUDA_ON = true;
-
+        CUDA = cvParser.get<int>("cuda");	        // gets argument -cuda=x, where 'x' define to use CUDA or not
         nCuda = cuda::getCudaEnabledDeviceCount();	// Try to detect any existing CUDA device
         // Deactivate CUDA from parse
         if (CUDA == 0){            
-            CUDA_ON = false;
             implementation = "CPU";
             cout << "CUDA deactivated" << endl;
             cout << "Exiting... use non-GPU version instead" << endl;
         }
         // Find CUDA devices
         else if (nCuda > 0){
+            implementation = "GPU";     
             cuda::DeviceInfo deviceInfo;
-            implementation = "GPU";
             cout << "CUDA enabled devices detected: " << deviceInfo.name() << endl;
             cuda::setDevice(0);
         }
         else {
-            CUDA_ON = false;
+            CUDA = 0;
             implementation = "CPU";
             cout << "No CUDA device detected" << endl;
             cout << "Exiting... use non-GPU version instead" << endl;
@@ -170,53 +166,56 @@ int main(int argc, char *argv[]) {
 
     // GPU Implementation
     #if USE_GPU
-        GpuMat srcGPU, dstGPU;
-        GpuMat dstSpacesGPU[6][3];
-        Mat dstSpaces[6][3];
+        if(CUDA){
+            GpuMat srcGPU, dstGPU;
+            GpuMat dstSpacesGPU[6][3];
+            Mat dstSpaces[6][3];
 
-        srcGPU.upload(src);
-        dstGPU.upload(dst);
+            srcGPU.upload(src);
+            dstGPU.upload(dst);
 
-        // Now, according to parameters provided at CLI calling time, we must split and process the image
-        for (int nc=0; nc<num_convert; nc++){
-            char c = cChannel[nc];
-            int channel = numChannel(c);
-            int space = numSpace(c);
-            cout << "\tChannel[" << nc << "]: " << c << endl;
+            // Now, according to parameters provided at CLI calling time, we must split and process the image
+            for (int nc=0; nc<num_convert; nc++){
+                char c = cChannel[nc];
+                int channel = numChannel(c);
+                int space = numSpace(c);
+                cout << "\tChannel[" << nc << "]: " << c << endl;
 
-            // If the option is recognized
-            if(!(space == -1)){
-                // Spaces HSV, hsl, Lab, YCX
-                if(space == 1 || space == 2 || space == 3 || space == 4 ){
-                    // Convert space
-                    cuda::cvtColor(srcGPU, dstGPU, transformation[space - 1][0], 3);
-                    // Split channels
-                    cuda::split(dstGPU, dstSpacesGPU[space]);
-                    // Stretch of selected channel
-                    imgChannelStretchGPU(dstSpacesGPU[space][channel], dstSpacesGPU[space][channel], min_percent, max_percent);
-                    // Convert back to BGR space
-                    cuda::cvtColor(dstGPU, srcGPU, transformation[space - 1][1], 3);
-                    // Merge channels to dst
-                    cuda::merge (dstSpacesGPU[space], 3, dstGPU);
-                }
-                // Space BGR
-                else{
-                    // Split channels
-                    cuda::split (srcGPU, dstSpacesGPU[space]);
-                    // Stretch of selected channel
-                    imgChannelStretchGPU(dstSpacesGPU[space][channel], dstSpacesGPU[space][channel], min_percent, max_percent);
-                    // Merge channels to src
-                    cuda::merge (dstSpacesGPU[space], 3, srcGPU);
-                }
-            // If the option is not recognized
-            }else cout << "Option " << c << " not recognized, skipping..." << endl;
+                // If the option is recognized
+                if(!(space == -1)){
+                    // Spaces HSV, hsl, Lab, YCX
+                    if(space == 1 || space == 2 || space == 3 || space == 4 ){
+                        // Convert space
+                        cuda::cvtColor(srcGPU, dstGPU, transformation[space - 1][0], 3);
+                        // Split channels
+                        cuda::split(dstGPU, dstSpacesGPU[space]);
+                        // Stretch of selected channel
+                        imgChannelStretchGPU(dstSpacesGPU[space][channel], dstSpacesGPU[space][channel], min_percent, max_percent);
+                        // Convert back to BGR space
+                        cuda::cvtColor(dstGPU, srcGPU, transformation[space - 1][1], 3);
+                        // Merge channels to dst
+                        cuda::merge (dstSpacesGPU[space], 3, dstGPU);
+                    }
+                    // Space BGR
+                    else{
+                        // Split channels
+                        cuda::split (srcGPU, dstSpacesGPU[space]);
+                        // Stretch of selected channel
+                        imgChannelStretchGPU(dstSpacesGPU[space][channel], dstSpacesGPU[space][channel], min_percent, max_percent);
+                        // Merge channels to src
+                        cuda::merge (dstSpacesGPU[space], 3, srcGPU);
+                    }
+                // If the option is not recognized
+                }else cout << "Option " << c << " not recognized, skipping..." << endl;
+            }
+
+            srcGPU.download(src);
+            dstGPU.download(dst);
+            
         }
-
-        srcGPU.download(src);
-        dstGPU.download(dst);
-    #else
-    // CPU Implementation
-    
+    #endif
+    if(not CUDA){
+        // CPU Implementation
         Mat dstSpaces[6][3];
         // Now, according to parameters provided at CLI calling time, we must split and process the image
         for (int nc=0; nc<num_convert; nc++){
@@ -252,7 +251,7 @@ int main(int argc, char *argv[]) {
             // If the option is not recognized
             }else cout << "Option " << c << " not recognized, skipping..." << endl;
         }
-    #endif
+    }
 
     //  End time measurement (Showing time results is optional)
     if( Time == 1 ){
