@@ -1,6 +1,6 @@
 # Installing OpenCV and CUDA 
 
-Step-by-step installation instructios of the development environment with OpenCV 3.2 and contrib with CUDA support for Ubuntu 16.04 x64.
+Step-by-step installation instructions for the development environment setup, with OpenCV 3.2 and contrib with CUDA support for Ubuntu 16.04 x64.
 
 ## Table of Contents
 - [Preparing the system](#preparing-the-system)
