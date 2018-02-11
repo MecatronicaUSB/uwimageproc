@@ -476,8 +476,9 @@ float calcOverlap(keyframe* kframe, Mat img_object) {
         // float dx = fabs(H.at<double>(0, 2));
         // float dy = fabs(H.at<double>(1, 2));
         // float overlap = (videoWidth - dx) * (videoHeight - dy) / (videoWidth * videoHeight);
+        // ---------------------------------
         
-        float overlap = overlapArea(H)/ (videoWidth * videoHeight);
+        float overlap = overlapArea(H);
 
 #ifdef _VERBOSE_ON_
         t = 1000 * ((double) getTickCount() - t) / getTickFrequency();
@@ -495,7 +496,7 @@ float calcOverlap(keyframe* kframe, Mat img_object) {
  */
 float overlapArea(Mat H){
     vector<Point2f> points, final_points;
-
+    float area_percent, area_over, area_img1, area_img2;
     // initialize the initial points in the corners of the original image
 	points.push_back(Point2f(0,0));
 	points.push_back(Point2f(TARGET_WIDTH,0));
@@ -512,6 +513,11 @@ float overlapArea(Mat H){
     // Fill the area inside the transformed points
     fillConvexPoly( mask, points_array, 4, Scalar(255,255,255));
 
-    // The overlap area will be all the points remains in the original image rectangle 
-    return countNonZero(mask);
+    area_img1 = videoWidth * videoHeight;
+    area_img2 = contourArea(final_points);
+    area_over = countNonZero(mask);
+
+    area_percent = area_over / ( area_img1 + area_img2 - area_over );
+
+    return area_percent;
 }
