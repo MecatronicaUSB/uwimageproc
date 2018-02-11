@@ -35,7 +35,7 @@
 #include <opencv2/xfeatures2d.hpp>
 
 /// CUDA specific libraries
-#ifdef USE_GPU
+#if USE_GPU
     #include <opencv2/cudafilters.hpp>
     #include "opencv2/cudafeatures2d.hpp"
     #include "opencv2/xfeatures2d/cuda.hpp"
@@ -58,10 +58,15 @@ char keyboard = 0;	// keyboard input character
 
 double t;	// Timing monitor
 
+#if USE_GPU
+    GpuMat auxD;    // Auxilary GpuMat to keep track of descriptors
+#endif
+
+
 // Structure to save the reference frame data, useful to reuse keypoints and descriptors
 
 typedef struct {
-    bool new_img;               // boolean value to know if it have the keypoints data stored
+    bool new_img;               // boolean value to know if it has the keypoints data stored
     vector<KeyPoint> keypoints; // keypoints of refererence frame
     Mat descriptors;            // Descriptors of refererence frame
     Mat img;                    // reference frame
@@ -255,7 +260,7 @@ int main(int argc, char *argv[]) {
         t = (double) getTickCount();
         //read the current frame, if fails, the quit
         if (!capture.read(frame)) {
-            cerr << "Unable to read next frame." << endl;
+            cerr << "\nUnable to read next frame." << endl;
             cerr << "Exiting..." << endl;
             exit(EXIT_FAILURE);
         }
@@ -263,9 +268,10 @@ int main(int argc, char *argv[]) {
 
         float bestBlur = 0.0, currBlur;    //we start using the current frame blur as best blur value yet
         resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);
-        
+        #if USE_GPU
         if(CUDA)
             over = calcOverlapGPU(&kframe, res_frame);
+        #endif
         if(not CUDA)
             over = calcOverlap(&kframe, res_frame);
 
@@ -285,8 +291,10 @@ int main(int argc, char *argv[]) {
             Start to search best frames in i+k frames, according to "blur level" estimator (based on Laplacian variance)
             We start using current frame as best frame so far
             */
+            #if USE_GPU
             if(CUDA)
                 bestBlur = calcBlurGPU(res_frame);
+            #endif
             if(not CUDA)
                 bestBlur = calcBlur(res_frame);
 
@@ -303,8 +311,10 @@ int main(int argc, char *argv[]) {
                 resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);    //uses a resized version
 
                 //we operate over the resampled image for speed purposes
+                #if USE_GPU
                 if(CUDA)
-                    currBlur = calcBlurGPU(res_frame);  
+                    currBlur = calcBlurGPU(res_frame);
+                #endif
                 if(not CUDA)
                     currBlur = calcBlur(res_frame);    
 
@@ -391,26 +401,28 @@ float calcOverlapGPU(keyframe* kframe, Mat img_object) {
     // Convert to grayscale
     cvtColor(img_object, img_object, COLOR_BGR2GRAY);
 
-    cuda::GpuMat gpu_img_object, gpu_img_scene;
-    cuda::GpuMat keypoints_object, keypoints_scene;
-    cuda::GpuMat descriptors_object, descriptors_scene;
+    vector<KeyPoint> keypoints_object, keypoints_scene;
+
+    cuda::GpuMat gpu_img_objectGPU, gpu_img_sceneGPU;
+    cuda::GpuMat keypoints_objectGPU, keypoints_sceneGPU;
+    cuda::GpuMat descriptors_objectGPU, descriptors_sceneGPU;
     // Upload to GPU
-    gpu_img_object.upload(img_object);
+    gpu_img_objectGPU.upload(img_object);
     // Detect keypoints
-    cuda::SURF_CUDA surf(minHessian);
-    surf(gpu_img_object, cuda::GpuMat(), keypoints_object, descriptors_object);
-    //-- Step 3: Matching descriptor vectors using BruteForceMatcher
-    surf.downloadKeypoints(keypoints_object, keypoints_object);
+    cuda::SURF_CUDA surf;
+    surf(gpu_img_objectGPU, cuda::GpuMat(), keypoints_objectGPU, descriptors_objectGPU);
+    surf.downloadKeypoints(keypoints_objectGPU, keypoints_object);
     if(kframe->new_img){
         cvtColor(kframe->res_img, kframe->res_img, COLOR_BGR2GRAY);
-        gpu_img_scene.upload(kframe->res_img);
-        surf(gpu_img_scene, cuda::GpuMat(), keypoints_scene, descriptors_scene);
-        surf.downloadKeypoints(kframe->keypoints, kframe->keypoints);
+        gpu_img_sceneGPU.upload(kframe->res_img);
+        surf(gpu_img_sceneGPU, cuda::GpuMat(), keypoints_sceneGPU, descriptors_sceneGPU);
+        auxD = descriptors_sceneGPU;
+        surf.downloadKeypoints(keypoints_sceneGPU, kframe->keypoints);
         kframe->new_img = false;
     }
 
     keypoints_scene = kframe->keypoints;
-    descriptors_scene = kframe->descriptors;
+    descriptors_sceneGPU = auxD;
  
 
 #ifdef _VERBOSE_ON_
@@ -425,12 +437,12 @@ float calcOverlapGPU(keyframe* kframe, Mat img_object) {
     double min_dist = 100;
 
     Ptr<cuda::DescriptorMatcher> matcher_gpu = cuda::DescriptorMatcher::createBFMatcher();
-    vector<vector<DMatch> > matches;
-    matcher_gpu->knnMatch(descriptors_object, descriptors_scene, matches_gpu, 2);
+    vector< vector< DMatch> > matches;
+    matcher_gpu->knnMatch(descriptors_objectGPU, descriptors_sceneGPU, matches, 2);
 
     //-- Step 4: Select only good matches
-    std::vector<DMatch> good_matches;
-    for (int k = 0; k < std::min(keypoints_object.size() - 1, matches.size()); k ++) {
+    vector<DMatch> good_matches;
+    for (int k = 0; k < std::min(keypoints_scene.size() - 1, matches.size()); k ++) {
         if ((matches[k][0].distance < 0.8 * (matches[k][1].distance)) &&
             ((int) matches[k].size() <= 2 && (int) matches[k].size() > 0)) {
             // take the first result only if its distance is smaller than 0.6*second_best_dist
@@ -438,7 +450,7 @@ float calcOverlapGPU(keyframe* kframe, Mat img_object) {
             good_matches.push_back(matches[k][0]);
         }
     }
-
+ 
 #ifdef _VERBOSE_ON_
     t = 1000 * ((double) getTickCount() - t) / getTickFrequency();
     cout << "\t | BFMatcher GPU: " << t << " ms ";
