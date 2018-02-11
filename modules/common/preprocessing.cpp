@@ -112,7 +112,7 @@ void imgChannelStretchGPU(cv::cuda::GpuMat imgOriginalGPU, cv::cuda::GpuMat imgS
 
     // Computing the histograms
     cv::Mat histogram;
-    getHistogram(Original, histogram);
+    getHistogram(&Original, &histogram);
     // printHistogram(histogram, "inputGPU.jpg", 255);
 
     // Computing the percentiles. We force invalid values as initial values (just in case)
@@ -127,7 +127,7 @@ void imgChannelStretchGPU(cv::cuda::GpuMat imgOriginalGPU, cv::cuda::GpuMat imgS
 	while ( sum < higherPercentile * normImgSize ){
         if(sum < lowerPercentile * normImgSize) channelLowerPercentile++; 
         channelHigherPercentile++;
-        sum += histogram[i];
+        sum += histogram.at<float>(i,0);
         i++;
     }
 
