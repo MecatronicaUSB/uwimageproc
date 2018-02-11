@@ -1,6 +1,6 @@
-# Installation OpenCV and CUDA 
+# Installing OpenCV and CUDA 
 
-Installation step by step of the development environment OpenCV 3.2 + and contrib with CUDA support for Ubuntu 16.04 x64.
+Step-by-step installation instructios of the development environment with OpenCV 3.2 and contrib with CUDA support for Ubuntu 16.04 x64.
 
 ## Table of Contents
 - [Preparing the system](#preparing-the-system)
@@ -69,7 +69,7 @@ sudo apt-get install libgtkglext1 libgtkglext1-dev
 ```
 
 ### CUDA 8.0 (optional)
-The recommended version is 8.0, yet you could try with a different version.
+The recommended version is 8.0, yet you could try with a different version. We would like to know about implementations with CUDA 9.0.
 ```bash-
 wget https://developer.nvidia.com/compute/cuda/8.0/Prod2/local_installers/cuda-repo-ubuntu1604-8-0-local-ga2_8.0.61-1_amd64-deb
 sudo dpkg -i cuda-repo-ubuntu1604-8-0-local_8.0.44-1_amd64.deb
