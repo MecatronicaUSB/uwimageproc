@@ -27,7 +27,7 @@ void getHistogram(cv::Mat img, int *histogram){
 //    std::cout << "gH: Initializing histogram vector" << endl;
     // Initializing the histogram. TODO: Check if there is a faster way
     for(i=0; i<256; i++){
-        memset(histogram, 0, sizeof(histogram));
+        histogram[i] = 0;
     }
 	// by using aux variables, we decrease overhead create by multiple calls to cvMat image methods to retrieve its size
 	// TODO: is it possible to measure the impact?
