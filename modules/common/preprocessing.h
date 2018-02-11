@@ -19,14 +19,15 @@
 
 // CUDA libraries
 #if USE_GPU
-#include <opencv2/cudafilters.hpp>
-#include "opencv2/cudafeatures2d.hpp"
-#include "opencv2/xfeatures2d/cuda.hpp"
-#include "opencv2/cudaimgproc.hpp"
-#include "opencv2/cudaarithm.hpp"
+    #include <opencv2/cudafilters.hpp>
+    #include "opencv2/cudafeatures2d.hpp"
+    #include "opencv2/xfeatures2d/cuda.hpp"
+    #include "opencv2/cudaimgproc.hpp"
+    #include "opencv2/cudaarithm.hpp"
 #endif
 
 using namespace std;
+using namespace cv;
 
 /**
  * @brief Computes the intensity distribution histograms for the three channels
@@ -34,9 +35,8 @@ using namespace std;
  * @param img OpenCV Matrix container input image
  * @param histogram Integer matrix to store the histogram
  */
-void getHistogram(cv::Mat img, int histogram[256]);
-// Histogram[256] has been modified into a single dimension 256-elements vector, as it will operate in a single channel
-
+void getHistogram(cv::Mat *img, cv::Mat *dstHist);
+// Fix #15: Port to OpenCV histrogram calculation calcHist function
 
 // TODO: Perhaps this function will be deprecated, or just kept back for visualization purposes (discuss it)
 /**

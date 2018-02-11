@@ -22,46 +22,18 @@
 
 #include "preprocessing.h"
 
-/*
-void getHistogram(cv::Mat img, int *histogram){    
-	int i = 0, j = 0;
-//    std::cout << "gH: Initializing histogram vector" << endl;
-    // Initializing the histogram. TODO: Check if there is a faster way
-    for(i=0; i<256; i++){
-        histogram[i] = 0;
-    }
-	// by using aux variables, we decrease overhead create by multiple calls to cvMat image methods to retrieve its size
-	// TODO: is it possible to measure the impact?
-	int width, height;
-	width = img.size().width;
-	height = img.size().height;
-//    cout << "gH: Computing image histogram" << endl;
-//    cout << "gH: Image size " << width << "x" << height << endl;
-    // Computing the histogram as a cumulative of each integer value. WARNING: this will fail for any non-integer image matrix
-    for(i=0; i<height; i++){
-        for(j=0; j<width; j++){
-            unsigned char value = img.at<unsigned char>(i,j);
-            //cout << "i: " << i << " j: " << j << " > " << value << endl;
-            histogram[value] += 1;
-        }
-    }
-}*/
-
-void getHistogram(const cv::Mat *img, cv::Mat *dstHist){    
+void getHistogram(cv::Mat *img, cv::Mat *dstHist){
 	// We will require 256 bins
-	int histSize = 256; //from 0 to 255
+	int histSize[] = {256}; //from 0 to 255
 	float range[] = { 0, 256 } ; //the upper boundary is exclusive
-	const float* histRange = { range }; // const as we don't expect to modify the content, just in case
+	const float* histRange[] = { range }; // const as we don't expect to modify the content, just in case
 	bool uniform = true; bool accumulate = false; // flags args for the OpenCV calcHist function
 
-//	Mat dstHist;	// container for the resulting histogram
-	calcHist( img, 1, 0, Mat(), dstHist, 1, &histSize, &histRange, uniform, accumulate );
-
+	calcHist(img, 1, 0, cv::Mat(), *dstHist, 1, histSize, histRange, uniform, accumulate );
 	//Now we have the resulting histogram stored in dstHist
-	
 }
 
-
+/*
 void printHistogram(int histogram[256], std::string filename, cv::Scalar color){
     // Finding the maximum value of the histogram. It will be used to scale the
     // histogram to fit the image.
@@ -103,7 +75,7 @@ void imgChannelStretch(cv::Mat imgOriginal, cv::Mat imgStretched, int lowerPerce
     // Computing the histograms
     cv::Mat histogram;
 
-    getHistogram(imgOriginal, &histogram);
+    getHistogram(&imgOriginal, &histogram);
     // printHistogram(histogram, "inputCPU.jpg", 255);
 
     // Computing the percentiles. We force invalid values as initial values (just in case)
@@ -111,13 +83,13 @@ void imgChannelStretch(cv::Mat imgOriginal, cv::Mat imgStretched, int lowerPerce
     int height = imgOriginal.size().height;
     int width = imgOriginal.size().width;
     int i = 0;
-    float sum=0.0;
+    float sum = 0.0;
 	float normImgSize = height * width / 100.0;
 
 	while ( sum < higherPercentile * normImgSize ){
         if(sum < lowerPercentile * normImgSize) channelLowerPercentile++; 
         channelHigherPercentile++;
-        sum += histogram[i];
+        sum += histogram.at<float>(i,0);
         i++;
     }
 
