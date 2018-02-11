@@ -1,9 +1,9 @@
 # uwimageproc
 # Underwater Image Processing Toolbox
 
-An open-source toolbox of underwater video and image processing that can be employed in applications such as: SLAM, seafloor mosaics, Structure-from-Motion, 3D reconstruction of underwater structures such as: shipwrecks, seabed, coral colonies and reefs, etc.
+An open-source toolbox for underwater video and image processing that could be employed in applications such as: SLAM, seafloor mosaics, Structure-from-Motion, 3D reconstruction of underwater structures such as: shipwrecks, seabed, coral colonies and reefs, etc.
 
-**uwimageproc** is a free and open source software licensed under the [GNU GPLv3.0 License](https://en.wikipedia.org/wiki/GNU_General_Public_License), unless otherwise specified in particular modules or libraries (see LICENSE and README.md).
+**uwimageproc** is a free and open source software [licensed](#license) under the [GNU GPLv3.0 License](https://en.wikipedia.org/wiki/GNU_General_Public_License), unless otherwise specified in particular modules or libraries (see LICENSE and README.md).
 
 ## Table of Contents
 - [Modules list](#modules-list)
@@ -14,12 +14,12 @@ An open-source toolbox of underwater video and image processing that can be empl
 - [License](#license)
 
 ## Modules list
-- [videostrip](https://github.com/MecatronicaUSB/uwimageproc/tree/master/modules/videostrip) Automatic frame extraction for 2D mosaic and/or 3D reconstruction 
+- [videostrip](https://github.com/MecatronicaUSB/uwimageproc/tree/master/modules/videostrip) Automatic frame extraction for 2D mosaic and 3D reconstruction 
 - [bgdehaze](https://github.com/MecatronicaUSB/uwimageproc/tree/master/modules/bgdehaze) BG Haze removal for UW images
 - [aclahe](https://github.com/MecatronicaUSB/uwimageproc/tree/master/modules/aclahe) Automatic Contrast-Limited AHE (CLAHE)
 - [histretch](https://github.com/MecatronicaUSB/uwimageproc/tree/master/modules/histretch) Percentile based histogram stretch w/channel selection
-- Automatic 2D mosaic generation > to be moved to [mosaic](https://github.com/MecatronicaUSB/mosaic)
-- 3D sparse and dense reconstruction > to be moved to [uw-slam](https://github.com/MecatronicaUSB/uw-slam)
+- Automatic 2D mosaic generation > migrated to [mosaic](https://github.com/MecatronicaUSB/mosaic)
+- 3D sparse and dense reconstruction > migrated to [uw-slam](https://github.com/MecatronicaUSB/uw-slam)
 
 Each module contains information describing its usage, with (usually) some useful README file. Code documentation is expected to be provided in Doxygen-compatible format. The current release contains C/C++, Python and/or Matlab implementations.
 
@@ -64,6 +64,8 @@ Summary of contributing guidelines (based on those of OpenCV project):
 * Include tests and documentation;
 * Use small datasets for testing purposes;
 * Follow always the same coding style guide. If possible, apply code formating with any IDE.
+
+Feel free to fork, clone or join the dev team. For further information please contact J. Cappelletto (<cappelletto@usb.ve>) with the subject: **uwimageproc**.
 
 ## License
 
