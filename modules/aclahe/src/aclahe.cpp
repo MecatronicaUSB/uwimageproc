@@ -226,7 +226,7 @@ int main(int argc, char *argv[]) {
 */
 float aclaheEntropy(cv::Mat img){
     float entropy = 0;
-    int hist[256];      // 256-bin histogram (pixel count)
+    cv::Mat hist;      // 256-bin histogram (pixel count)
     float histN[256];   // normalized histogram
 
     int width, height;
@@ -234,11 +234,11 @@ float aclaheEntropy(cv::Mat img){
     height = img.size().height;
 
     // Finds the image histogram
-    getHistogram(img, hist);
+    getHistogram(&img, &hist);
     // Normalize the histogram, by the total number of pixels, and also convert it into log2
     // Computes the entropy as the Shannon Index
     for (int i=0; i< 256; i++){
-        histN[i] = ((float)hist[i]) / (width * height);
+        histN[i] = hist.at<float>(i,0) / (width * height);
         // we add 0.0000001 just in case there is a NULL bin in the histogram
         entropy = entropy + ( histN[i] * log2(histN[i] + 0.00001));
         // real entropy value is negative of this result
