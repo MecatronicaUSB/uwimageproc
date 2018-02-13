@@ -5,7 +5,7 @@
 /* Created:		11/12/2016                                          */
 /* Edited:		30/01/2017, 07:12 PM                                */
 /* Description:						                                
-	Module that extracts frames from video for 2D mosaic or 3D model reconstruction. It estimates the overlap among frames
+	Module that extracts frames from video for 2D mosaic or 3D model reconstruction. It estimates the minOverlap among frames
 	by computing the homography matrix. Current OpenCV implementation uses GPU acceleration for feature detection and matching
 	through CUDA library.
 */
@@ -47,7 +47,7 @@
 /// Constant definitios
 #define TARGET_WIDTH	640        //< Resized image width
 #define TARGET_HEIGHT	480        //< Resized image height
-#define OVERLAP_MIN  	0.8        //< Minimum desired overlap among consecutive key frames
+#define OVERLAP_MIN  	0.4        //< Minimum desired minOverlap among consecutive key frames
 #define DEFAULT_KWINDOW 11         //< Search window size for best blur-based frame, after new key frame
 #define DEFAULT_TIMESKIP 0         //< Search window size for best blur-based frame, after new key frame
 
@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
 /*	PARSER section */
     std::string descriptionString = \
     "videostrip - module part of [uwimageproc] toolbox, for smart extraction of video frames.\
-    Employs a feature-based homography matrix estimation to calculate the overlap among best frames.\
+    Employs a feature-based homography matrix estimation to calculate the minOverlap among best frames.\
     Frame quality is based on Laplacian variance, in order to select the best frame that overlaps with previous selected frame";
 
     argParser.Description(descriptionString);
@@ -167,7 +167,7 @@ int main(int argc, char *argv[]) {
      */
     int timeSkip = DEFAULT_TIMESKIP;	// number of seconds to skip from the start of the video
     int kWindow = DEFAULT_KWINDOW;		// size of the search window for the best frame
-    float overlap = OVERLAP_MIN;	    // desired overlap percentage between frames
+    float minOverlap = OVERLAP_MIN;	    // desired minOverlap percentage between frames
 
     /*
      * Now, start verifying each optional argument from argParser
@@ -188,10 +188,10 @@ int main(int argc, char *argv[]) {
     }
 
     if (argOverlap){
-        cout << "overlap value provided: " << (overlap = args::get(argOverlap)) << endl;
+        cout << "minOverlap value provided: " << (minOverlap = args::get(argOverlap)) << endl;
     }
     else{
-        cout << "overlap default value: " << overlap << endl;
+        cout << "minOverlap default value: " << minOverlap << endl;
     }
 
     //************************************************************************
@@ -211,8 +211,7 @@ int main(int argc, char *argv[]) {
     string FileBase = FileName.substr(0, FileName.length() - FileType.length());
 
     //**************************************************************************
-    int nCuda = - 1;    //<Defines number of detected CUDA devices. By default, -1 acting as error value
-
+    int nCuda = - 1;    //<Defines number of detected CUDA devices. By default, -1 acting as error value 
 #ifdef USE_GPU
     /* CUDA */
     // TODO: read about possible failure at runtime when calling CUDA methods in non-CUDA hardware.
@@ -260,7 +259,7 @@ int main(int argc, char *argv[]) {
     cout << "\tSize:\t" << videoWidth << " x " << videoHeight << endl;
     cout << "\tFrames:\t" << videoFrames << " @ " << videoFPS << endl;
     cout << "\thResize:\t" << hResizeFactor << endl;
-    cout << "Target overlap:\t" << overlap << endl;
+    cout << "Target minOverlap:\t" << minOverlap << endl;
     cout << "K-Window size:\t" << kWindow << endl;
 	if (timeSkip > 0) cout << "Time skip:\t" << timeSkip << endl;
 
@@ -279,7 +278,7 @@ int main(int argc, char *argv[]) {
     // struct keyframe
     keyframe kframe; 
     
-    float over;
+    float currOverlap;	//current overlap value
     int out_frame = 0, read_frame = 0;
 
     // we use the first frame as keyframe (so far, further implementations should include cli arg to pick one by user)
@@ -288,11 +287,15 @@ int main(int argc, char *argv[]) {
     // resizing for speed purposes
     resize(kframe.img, kframe.res_img, cv::Size(hResizeFactor * kframe.img.cols, hResizeFactor * kframe.img.rows), 0, 0,
            CV_INTER_LINEAR);
+    // TODO: This second way to call 'resize' may be faster
+    //resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);
 
+    // we save the first keyframe. Using zero padding up to 4 digits for output frames enumeration
     OutputFileName.str("");
     OutputFileName << OutputFile << setfill('0') << setw(4) << out_frame << ".jpg";
     imwrite(OutputFileName.str(), kframe.img);
 
+    // exits when pressed 'ESC' or 'q'
     while (keyboard != 'q' && keyboard != 27) {
         t = (double) getTickCount();
         //read the current frame, if fails, the quit
@@ -303,21 +306,23 @@ int main(int argc, char *argv[]) {
         }
         read_frame ++;
 
-        float bestBlur = 0.0, currBlur;    //we start using the current frame blur as best blur value yet
+        float bestBlur = 0.0, currBlur;    //we start using the current frame blur as best blur value
         resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);
 
-        over = calcOverlap(&kframe, res_frame);
-        cout << '\r' << "Frame: " << read_frame << " [" << out_frame << "]\tOverlap: " << over << std::flush;
+        currOverlap = calcOverlap(&kframe, res_frame);
+        cout << '\r' << "Frame: " << read_frame << " [" << out_frame << "]\tOverlap: " << currOverlap << std::flush;
 
-		//special case: overlap cannot be computed, we force it with an impossible negative value
-        // TODO: check better numerically stable way to detect failed overlap detection, rather through forced value
-		if (over == -2.0){
+	//special case: minOverlap cannot be computed, we force it with an impossible negative value
+        // TODO: check better numerically stable way to detect failed minOverlap detection, rather through forced value
+		if (currOverlap == -2.0){
             /*cout << endl << "Forcing current new keyframe" << endl;
 			keyframe = frame.clone();		
 	        resize(keyframe, res_keyframe, cv::Size(), hResizeFactor, hResizeFactor);*/
-			over = OVERLAP_MIN + 0.01;
+			currOverlap = OVERLAP_MIN + 0.01;	//by doing this, we may trigger a new keyframe 
 		}
-		if ((over < overlap) && (over > OVERLAP_MIN)) {
+		// should we trigger a new keyframe search? TODO: improve this conditional
+//		if ((currOverlap <= minOverlap) && (currOverlap > OVERLAP_MIN)) {
+		if ((currOverlap <= minOverlap)) {
 			cout << endl;
             /*!
             Start to search best frames in i+k frames, according to "blur level" estimator (based on Laplacian variance)
@@ -335,7 +340,7 @@ int main(int argc, char *argv[]) {
 				}
                 read_frame ++;
                 resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);    //uses a resized version
-                currBlur = calcBlur(res_frame);    //we operate over the resampled image for speed purposes
+                currBlur = calcBlur(res_frame);    //we operate currOverlap the resampled image for speed purposes
 
                 cout << '\r' << "Refining for Blur [" << n+1 << "/" << kWindow << "]\tBlur: " << currBlur << "\tBest: " << bestBlur << std::flush;
                 if (currBlur > bestBlur) {    //if current blur is better, replaces best frame
@@ -409,7 +414,7 @@ float calcBlur(Mat frame) {
     @param
             img_scene	Mat OpenCV matrix container of reference frame
     @param img_object	Mat OpenCV matrix container of target frame
-	@brief retval		The normalized overlap among two given frame
+	@brief retval		The normalized minOverlap among two given frame
 */
 float calcOverlap(keyframe* kframe, Mat img_object) {
 	// if any of the input images are empty, then exits with error code
@@ -498,7 +503,7 @@ float calcOverlap(keyframe* kframe, Mat img_object) {
     //we must check if found H matrix is good enough. It requires at least 4 points
     if (good_matches.size() < 4) {
         cout << "[WARN] Not enough good matches!" << endl;
-        //we fail to estimate new overlap
+        //we fail to estimate new minOverlap
         return -2.0;
     }
     else {
@@ -518,31 +523,31 @@ float calcOverlap(keyframe* kframe, Mat img_object) {
 		
 		if (H.empty())	return -2.0;
 
-        // Old overlap area calc method ----
+        // Old minOverlap area calc method ----
         // float dx = fabs(H.at<double>(0, 2));
         // float dy = fabs(H.at<double>(1, 2));
-        // float overlap = (videoWidth - dx) * (videoHeight - dy) / (videoWidth * videoHeight);
+        // float minOverlap = (videoWidth - dx) * (videoHeight - dy) / (videoWidth * videoHeight);
         // ---------------------------------
         
-        float overlap = overlapArea(H);
+        float minOverlap = overlapArea(H);
 
 #ifdef _VERBOSE_ON_
         t = 1000 * ((double) getTickCount() - t) / getTickFrequency();
         cout << "\t | Homography: " << t << " ms" << endl;
         t = (double) getTickCount();
 #endif
-        return overlap;
+        return minOverlap;
     }
 }
 
 /**
- * @brief Function to obtain the real overlap area between transformed and reference frame
+ * @brief Function to obtain the real minOverlap area between transformed and reference frame
  * @param H OpenCV Matrix containing the homography transformation
- * @return float The normalized overlap among two given frame
+ * @return float The normalized minOverlap among two given frame
  */
 float overlapArea(Mat H){
     vector<Point2f> points, final_points;
-    float area_percent, area_over, area_img1, area_img2;
+    float area_percent, area_currOverlap, area_img1, area_img2;
     // initialize the initial points in the corners of the original image
 	points.push_back(Point2f(0,0));
 	points.push_back(Point2f(TARGET_WIDTH,0));
@@ -561,9 +566,9 @@ float overlapArea(Mat H){
 
     area_img1 = videoWidth * videoHeight;
     area_img2 = contourArea(final_points);
-    area_over = countNonZero(mask);
+    area_currOverlap = countNonZero(mask);
 
-    area_percent = area_over / ( area_img1 + area_img2 - area_over );
+    area_percent = area_currOverlap / ( area_img1 + area_img2 - area_currOverlap );
 
     return area_percent;
 }
