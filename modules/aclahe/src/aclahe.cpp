@@ -76,13 +76,14 @@ int main(int argc, char *argv[]) {
     CommandLineParser cvParser(argc, argv, keys);
     cvParser.about(ABOUT_STRING);    //adds "about" information to the parser method
     //**************************************************************************
-    cout << ABOUT_STRING << endl;
+
+    cout << "ACLAHE: a C++ implementation Automatic Contrast Limited Adaptive Histogram Equalization" << endl;
     cout << "Built with OpenCV " << CV_VERSION << endl;
+    cout << "Compiled:" << __DATE__ << " | " << __TIME__ << endl;
 
     //if the number of arguments is lower than 3, or contains "help" keyword, then we show the help
     if (argc < 3 || cvParser.has("help")) {
-        cout << "ACLAHE: a C++ implementation Automatic Contrast Limited Adaptive Histogram Equalization" << endl;
-        cvParser.printMessage();
+        //cvParser.printMessage();
 
         cout << endl << "\tExample:" << endl;
         cout << "\t$ aclahe input.jpg output.jpg" << endl;

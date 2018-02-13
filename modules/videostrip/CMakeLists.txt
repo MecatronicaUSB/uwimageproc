@@ -45,20 +45,29 @@ if(CMAKE_VERSION VERSION_LESS "2.8.11")
   include_directories(${OpenCV_INCLUDE_DIRS})
 endif()
 
+file(GLOB mosaic-include-files
+    "../common/*.h"
+    "../common/*.hxx"
+    "../common/*.cpp"
+    "include/*.h"
+    "src/*.cpp"
+)
+
+add_executable(videostrip ${mosaic-include-files})
+target_compile_options(videostrip PUBLIC -std=c++11)
+
  # Declare the executable target built from your sources
 if(CUDA_FOUND)
   # Add definition to CUDA SUPPORT
   add_definitions(-D USE_GPU)
   message(STATUS "Configuring for GPU version.")
-  add_executable(videostrip src/videostrip.cpp)
   # Link your application with OpenCV libraries
-  target_link_libraries(videostrip ${OpenCV_LIBS} ${CUDA_LIBRARIES})
+ target_link_libraries(videostrip ${OpenCV_LIBS} ${CUDA_LIBRARIES})
 else()
   message(STATUS "Configuring for non-GPU version.")
   message(STATUS "	Expect a slower speed...")
-  add_executable(videostrip src/videostrip.cpp)
   # Link your application with OpenCV libraries
-  target_link_libraries(videostrip ${OpenCV_LIBS})
+ target_link_libraries(videostrip ${OpenCV_LIBS})
 endif(CUDA_FOUND)
 
 

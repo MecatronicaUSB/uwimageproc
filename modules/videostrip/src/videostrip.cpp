@@ -22,7 +22,7 @@
 #include <iomanip>
 #include <sstream>
 #include <fstream>
-#include <stdlib.h>
+//#include <stdlib.h>
 
 /// OpenCV libraries. May need review for the final release
 #include <opencv2/core.hpp>
@@ -34,7 +34,7 @@
 #include "opencv2/calib3d.hpp"
 #include <opencv2/xfeatures2d.hpp>
 
-
+#include "../include/options.h"
 // #cmakedefine USE_GPU
 
 /// CUDA specific libraries
@@ -47,8 +47,9 @@
 /// Constant definitios
 #define TARGET_WIDTH	640        //< Resized image width
 #define TARGET_HEIGHT	480        //< Resized image height
-#define OVERLAP_MIN  	0.4        //< Minimum desired overlap among consecutive key frames
+#define OVERLAP_MIN  	0.8        //< Minimum desired overlap among consecutive key frames
 #define DEFAULT_KWINDOW 11         //< Search window size for best blur-based frame, after new key frame
+#define DEFAULT_TIMESKIP 0         //< Search window size for best blur-based frame, after new key frame
 
 //#define _VERBOSE_ON_
 // C++ namespaces
@@ -105,47 +106,92 @@ int main(int argc, char *argv[]) {
 
 //*********************************************************************************
 /*	PARSER section */
-/*  Uses built-in OpenCV parsing method cv::CommandLineParser. It requires a string containing the arguments to be parsed from
-	the command line. Further details can be obtained from opencv webpage
-*/
-    String keys =
-            "{@input |<none>  | Input video path}"    // input image is the first argument (positional)
-                    "{@output |<none> | Prefix for output .jpg images}" // output prefix is the second argument (positional)
-                    "{p      |0.95  | Percent of desired overlap between consecutive frames (0.0 to 1.0)}"
-                    "{k      |      | Defines window size of k-frames for keyframe tuning}"
-                    "{s      | 0    | Skip NN seconds from the start of the video}"
-                    "{help h usage ?  |      | show this help message}";      // optional, show help optional
+    std::string descriptionString = \
+    "videostrip - module part of [uwimageproc] toolbox, for smart extraction of video frames.\
+    Employs a feature-based homography matrix estimation to calculate the overlap among best frames.\
+    Frame quality is based on Laplacian variance, in order to select the best frame that overlaps with previous selected frame";
 
-    CommandLineParser cvParser(argc, argv, keys);
-    cvParser.about("videostrip module v0.3");	//adds "about" information to the parser method
+    argParser.Description(descriptionString);
+    argParser.Epilog("Author: J. Cappelletto (GitHub: @cappelletto)\nVisit [https://github.com/mecatronicaUSB] for project information\n");
+    argParser.Prog(argv[0]);
+    argParser.helpParams.width = 120;
 
-	//if the number of arguments is lower than 3, or contains "help" keyword, then we show the help
-	if (argc < 3 || cvParser.has("help")) {
-        cout << "Automatically extract video frames for 2D mosaic generation or 3D model reconstruction" << endl;
-        cout <<
-        "Computes frame quality based on Laplacian variance, to select best frame that overlaps with previous selected frame" <<
-        endl;
-        cout << "Overlap of consecutive selected frames is estimated through homography matrix H" << endl;
-        cvParser.printMessage();
-        cout << endl << "\tExample:" << endl;
-        cout << "\t$ videostrip -p=0.6 -k=5 -s=12 input.avi vdout_" << endl;
-        cout <<
-        "\tThis will open 'input.avi' file, extract frames with 60% of overlapping, skipping first 12 seconds, and export into 'vdout_XXXX.jpg' images" << endl << endl;
-        return 0;
+    try{
+        argParser.ParseCLI(argc, argv);
+    }
+    catch (args::Help){    // if argument asking for help, show this message
+        cout << argParser;
+        return 1;
+    }
+    catch (args::ParseError e){  //if some error ocurr while parsing, show summary
+        std::cerr << e.what() << std::endl;
+        std::cerr << "Use -h, --help command to see usage" << std::endl;
+        return 1;
+    }
+    catch (args::ValidationError e){ // if some error at argument validation, show
+        std::cerr << "Bad input commands" << std::endl;
+        std::cerr << "Use -h, --help command to see usage" << std::endl;
+        return 1;
     }
 
-    String InputFile = cvParser.get<cv::String>(0);		//String containing the input file path+name from cvParser function
-    String OutputFile = cvParser.get<cv::String>(1);	//String containing the output file template from cvParser function
-    ostringstream OutputFileName;						// output string that will contain the desired output file name
+    /*
+     * Display son build info
+     */
 
-	int timeSkip = cvParser.get<int>("s"); 		// gets argument -s=NN, where NN is the number of seconds to skip from the start of the video
-    int kWindow = cvParser.get<int>("k");		// gets argument -k=WW, where WW is the size of the search window for the best frame 
-    float overlap = cvParser.get<float>("p");	// gets argument -p=OO, where OO is the desired overlap among frames
+    cout << "Built with OpenCV " << CV_VERSION << " @ " << __DATE__ << " - " << __TIME__ << endl;
+#ifdef USE_GPU
+    cout << "CUDA mode enabled" << endl;
+#endif
+    /*
+     * Start parsing mandatory arguments
+     */
 
-	// Check if occurred any error during parsing process
-    if (! cvParser.check()) {
-        cvParser.printErrors();
-        return -1;
+    if (!argInput){
+        cerr << "Mandatory <input> file name missing" << endl;
+        cerr << "Use -h, --help command to see usage" << endl;
+        return 1;
+    }
+
+    if (!argOutput){
+        cerr << "Mandatory <output> file name missing" << endl;
+        cerr << "Use -h, --help command to see usage" << endl;
+        return 1;
+    }
+
+    String InputFile = args::get(argInput);	//String containing the input file path+name from cvParser function
+    String OutputFile = args::get(argOutput);	//String containing the output file template from cvParser function
+    ostringstream OutputFileName;				// output string that will contain the desired output file name
+    /*
+     * These were the mandatory arguments. Now we proceed to optional parameters.
+     * When each variable is defined, we assign the default value.
+     */
+    int timeSkip = DEFAULT_TIMESKIP;	// number of seconds to skip from the start of the video
+    int kWindow = DEFAULT_KWINDOW;		// size of the search window for the best frame
+    float overlap = OVERLAP_MIN;	    // desired overlap percentage between frames
+
+    /*
+     * Now, start verifying each optional argument from argParser
+     */
+
+    if (argTimeSkip){
+        cout << "timeSkip value provided: " << (timeSkip = args::get(argTimeSkip)) << endl;
+    }
+    else{
+        cout << "timeSkip default value: " << timeSkip << endl;
+    }
+
+    if (argWindowSize){
+        cout << "windowSize value provided: " << (kWindow = args::get(argWindowSize)) << endl;
+    }
+    else{
+        cout << "windowSize default value: " << kWindow << endl;
+    }
+
+    if (argOverlap){
+        cout << "overlap value provided: " << (overlap = args::get(argOverlap)) << endl;
+    }
+    else{
+        cout << "overlap default value: " << overlap << endl;
     }
 
     //************************************************************************
@@ -166,7 +212,7 @@ int main(int argc, char *argv[]) {
 
     //**************************************************************************
     int nCuda = - 1;    //<Defines number of detected CUDA devices. By default, -1 acting as error value
-    cout << "Built with OpenCV " << CV_VERSION << endl;
+
 #ifdef USE_GPU
     /* CUDA */
     // TODO: read about possible failure at runtime when calling CUDA methods in non-CUDA hardware.
