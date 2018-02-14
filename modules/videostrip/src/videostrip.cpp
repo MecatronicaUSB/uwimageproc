@@ -34,11 +34,14 @@
 #include "opencv2/calib3d.hpp"
 #include <opencv2/xfeatures2d.hpp>
 
+<<<<<<< HEAD
 #include "../include/options.h"
 // #cmakedefine USE_GPU
 
+=======
+>>>>>>> videostriGPUonoff
 /// CUDA specific libraries
-#ifdef USE_GPU
+#if USE_GPU
     #include <opencv2/cudafilters.hpp>
     #include "opencv2/cudafeatures2d.hpp"
     #include "opencv2/xfeatures2d/cuda.hpp"
@@ -62,10 +65,15 @@ char keyboard = 0;	// keyboard input character
 
 double t;	// Timing monitor
 
+#if USE_GPU
+    GpuMat auxD;    // Auxilary GpuMat to keep track of descriptors
+#endif
+
+
 // Structure to save the reference frame data, useful to reuse keypoints and descriptors
 
 typedef struct {
-    bool new_img;               // boolean value to know if it have the keypoints data stored
+    bool new_img;               // boolean value to know if it has the keypoints data stored
     vector<KeyPoint> keypoints; // keypoints of refererence frame
     Mat descriptors;            // Descriptors of refererence frame
     Mat img;                    // reference frame
@@ -87,7 +95,11 @@ typedef struct {
 // See description in function definition
 float calcOverlap(keyframe* kframe, Mat image_object);
 // See description in function definition
+float calcOverlapGPU(keyframe* kframe, Mat image_object);
+// See description in function definition
 float calcBlur(Mat frame);
+// See description in function definition
+float calcBlurGPU(Mat frame);
 // See description in function definition
 float overlapArea(Mat H);
 
@@ -106,6 +118,7 @@ int main(int argc, char *argv[]) {
 
 //*********************************************************************************
 /*	PARSER section */
+<<<<<<< HEAD
     std::string descriptionString = \
     "videostrip - module part of [uwimageproc] toolbox, for smart extraction of video frames.\
     Employs a feature-based homography matrix estimation to calculate the overlap among best frames.\
@@ -137,6 +150,41 @@ int main(int argc, char *argv[]) {
     /*
      * Display son build info
      */
+=======
+/*  Uses built-in OpenCV parsing method cv::CommandLineParser. It requires a string containing the arguments to be parsed from
+	the command line. Further details can be obtained from opencv webpage
+*/
+    String keys =
+            "{@input |<none>  | Input video path}"    // input image is the first argument (positional)
+                    "{@output |<none> | Prefix for output .jpg images}" // output prefix is the second argument (positional)
+                    "{p      |0.95  | Percent of desired overlap between consecutive frames (0.0 to 1.0)}"
+                    "{k      |      | Defines window size of k-frames for keyframe tuning}"
+                    "{s      | 0    | Skip NN seconds from the start of the video}"
+                    "{cuda    |       | Use CUDA or not (CUDA ON: 1, CUDA OFF: 0)}"         // Use CUDA (if available) or not   
+                    "{help h usage ?  |      | show this help message}";      // optional, show help optional
+
+    CommandLineParser cvParser(argc, argv, keys);
+    cvParser.about("videostrip module v0.3");	//adds "about" information to the parser method
+
+	//if the number of arguments is lower than 3, or contains "help" keyword, then we show the help
+	if (argc < 3 || cvParser.has("help")) {
+        cout << "Automatically extract video frames for 2D mosaic generation or 3D model reconstruction" << endl;
+        cout <<
+        "Computes frame quality based on Laplacian variance, to select best frame that overlaps with previous selected frame" <<
+        endl;
+        cout << "Overlap of consecutive selected frames is estimated through homography matrix H" << endl;
+        cvParser.printMessage();
+        cout << endl << "\tExample:" << endl;
+        cout << "\t$ videostrip -p=0.6 -k=5 -s=12 -cuda=0 input.avi vdout_" << endl;
+        cout <<
+        "\tThis will open 'input.avi' file, extract frames with 60% of overlapping, skipping first 12 seconds, and export into 'vdout_XXXX.jpg' images" << endl << endl;
+        return 0;
+    }
+    int CUDA = 0;                                       //Default option (running with CPU)
+    String InputFile = cvParser.get<cv::String>(0);		//String containing the input file path+name from cvParser function
+    String OutputFile = cvParser.get<cv::String>(1);	//String containing the output file template from cvParser function
+    ostringstream OutputFileName;						// output string that will contain the desired output file name
+>>>>>>> videostriGPUonoff
 
     cout << "Built with OpenCV " << CV_VERSION << " @ " << __DATE__ << " - " << __TIME__ << endl;
 #ifdef USE_GPU
@@ -212,6 +260,7 @@ int main(int argc, char *argv[]) {
 
     //**************************************************************************
     int nCuda = - 1;    //<Defines number of detected CUDA devices. By default, -1 acting as error value
+<<<<<<< HEAD
 
 #ifdef USE_GPU
     /* CUDA */
@@ -230,6 +279,28 @@ int main(int argc, char *argv[]) {
         cout << "Exiting... use non-GPU version instead" << endl;
     }
 #endif
+=======
+    #if USE_GPU
+        CUDA = cvParser.get<int>("cuda");	        // gets argument -cuda=x, where 'x' define to use CUDA or not
+        nCuda = cuda::getCudaEnabledDeviceCount();	// Try to detect any existing CUDA device
+        // Deactivate CUDA from parse
+        if (CUDA == 0){            
+            cout << "CUDA deactivated" << endl;
+            cout << "Exiting... use non-GPU version instead" << endl;
+        }
+        // Find CUDA devices
+        else if (nCuda > 0){   
+            cuda::DeviceInfo deviceInfo;
+            cout << "CUDA enabled devices detected: " << deviceInfo.name() << endl;
+            cuda::setDevice(0);
+        }
+        else {
+            CUDA = 0;
+            cout << "No CUDA device detected" << endl;
+            cout << "Exiting... use non-GPU version instead" << endl;
+        }
+    #endif
+>>>>>>> videostriGPUonoff
     // TODO: How to operate when multiple CUDA devices are detected?
     // So far, we work with the first detected CUDA device. Maybe, add some CUDA probe mode when called
 
@@ -297,7 +368,7 @@ int main(int argc, char *argv[]) {
         t = (double) getTickCount();
         //read the current frame, if fails, the quit
         if (!capture.read(frame)) {
-            cerr << "Unable to read next frame." << endl;
+            cerr << "\nUnable to read next frame." << endl;
             cerr << "Exiting..." << endl;
             exit(EXIT_FAILURE);
         }
@@ -305,8 +376,13 @@ int main(int argc, char *argv[]) {
 
         float bestBlur = 0.0, currBlur;    //we start using the current frame blur as best blur value yet
         resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);
+        #if USE_GPU
+        if(CUDA)
+            over = calcOverlapGPU(&kframe, res_frame);
+        #endif
+        if(not CUDA)
+            over = calcOverlap(&kframe, res_frame);
 
-        over = calcOverlap(&kframe, res_frame);
         cout << '\r' << "Frame: " << read_frame << " [" << out_frame << "]\tOverlap: " << over << std::flush;
 
 		//special case: overlap cannot be computed, we force it with an impossible negative value
@@ -323,7 +399,13 @@ int main(int argc, char *argv[]) {
             Start to search best frames in i+k frames, according to "blur level" estimator (based on Laplacian variance)
             We start using current frame as best frame so far
             */
-            bestBlur = calcBlur(res_frame);
+            #if USE_GPU
+            if(CUDA)
+                bestBlur = calcBlurGPU(res_frame);
+            #endif
+            if(not CUDA)
+                bestBlur = calcBlur(res_frame);
+
             bestframe = frame.clone();
             //for each frame inside the k-consecutive frame window, we refine the search
             for (int n = 0; n < kWindow; n ++) {
@@ -335,7 +417,14 @@ int main(int argc, char *argv[]) {
 				}
                 read_frame ++;
                 resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);    //uses a resized version
-                currBlur = calcBlur(res_frame);    //we operate over the resampled image for speed purposes
+
+                //we operate over the resampled image for speed purposes
+                #if USE_GPU
+                if(CUDA)
+                    currBlur = calcBlurGPU(res_frame);
+                #endif
+                if(not CUDA)
+                    currBlur = calcBlur(res_frame);    
 
                 cout << '\r' << "Refining for Blur [" << n+1 << "/" << kWindow << "]\tBlur: " << currBlur << "\tBest: " << bestBlur << std::flush;
                 if (currBlur > bestBlur) {    //if current blur is better, replaces best frame
@@ -372,6 +461,151 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
+#if USE_GPU
+/*! @fn float calcBlurGPU (Mat frame)
+    @brief Calculates the "blur" of a given Mat frame using GPU, based on the standard deviation of the Laplacian of the input frame
+    @param frame OpenCV matrix container of the input frame
+	@retval The estimated blur for the given frame
+*/
+float calcBlurGPU(Mat frame) {
+    // Avg time: 0.7 ms GPU/ 23ms CPU
+    Mat grey, laplacian;
+    cvtColor(frame, grey, COLOR_BGR2GRAY);
+
+    cuda::GpuMat gpuFrame, gpuLaplacian;
+    //upload into GPU memory
+    gpuFrame.upload(grey);
+    //perform Laplacian filter
+    Ptr<cuda::Filter> filter = cuda::createLaplacianFilter(gpuFrame.type(), gpuLaplacian.type(), 1, 1);
+    filter->apply(gpuFrame, gpuLaplacian);    //**/
+    //download from GPU memory
+    gpuLaplacian.download(laplacian);
+
+    //we compute the laplacian of the current frame
+    Scalar mean, stdev;
+    // the we compute the mean and stdev of that frame
+    meanStdDev(laplacian, mean, stdev);
+    // double m = mean.val[0];
+    // double s = stdev.val[0];
+    // we return the standard deviation (stdev)
+    return stdev.val[0];
+}
+
+/*! @fn float calcOverlapGPU(Mat img_scene, Mat img_object)
+    @brief Calculates the percentage of overlapping among two frames using GPU, by estimating the Homography matrix.
+    @param
+            img_scene	Mat OpenCV matrix container of reference frame
+    @param img_object	Mat OpenCV matrix container of target frame
+	@brief retval		The normalized overlap among two given frame
+*/
+float calcOverlapGPU(keyframe* kframe, Mat img_object) {
+	// if any of the input images are empty, then exits with error code
+    if (! img_object.data || ! kframe->res_img.data) {
+        cout << " --(!) Error reading images " << std::endl;
+        return - 1;
+    }
+    //-- Step 1: Detect the keypoints using SURF Detector
+    int minHessian = 400;
+    // Convert to grayscale
+    cvtColor(img_object, img_object, COLOR_BGR2GRAY);
+
+    vector<KeyPoint> keypoints_object, keypoints_scene;
+
+    cuda::GpuMat gpu_img_objectGPU, gpu_img_sceneGPU;
+    cuda::GpuMat keypoints_objectGPU, keypoints_sceneGPU;
+    cuda::GpuMat descriptors_objectGPU, descriptors_sceneGPU;
+    // Upload to GPU
+    gpu_img_objectGPU.upload(img_object);
+    // Detect keypoints
+    cuda::SURF_CUDA surf;
+    surf(gpu_img_objectGPU, cuda::GpuMat(), keypoints_objectGPU, descriptors_objectGPU);
+    surf.downloadKeypoints(keypoints_objectGPU, keypoints_object);
+    if(kframe->new_img){
+        cvtColor(kframe->res_img, kframe->res_img, COLOR_BGR2GRAY);
+        gpu_img_sceneGPU.upload(kframe->res_img);
+        surf(gpu_img_sceneGPU, cuda::GpuMat(), keypoints_sceneGPU, descriptors_sceneGPU);
+        auxD = descriptors_sceneGPU;
+        surf.downloadKeypoints(keypoints_sceneGPU, kframe->keypoints);
+        kframe->new_img = false;
+    }
+
+    keypoints_scene = kframe->keypoints;
+    descriptors_sceneGPU = auxD;
+ 
+
+#ifdef _VERBOSE_ON_
+    t = 1000 * ((double) getTickCount() - t) / getTickFrequency();
+    cout << endl << "SURF@GPU: " << t << " ms ";
+    t = (double) getTickCount();
+#endif
+
+    //***************************************************************//
+    //-- Step 3: Matching descriptor vectors using GPU BruteForce matcher (instead CPU FLANN)
+    // Avg time: 2.5 ms GPU / 21 ms CPU
+    double min_dist = 100;
+
+    Ptr<cuda::DescriptorMatcher> matcher_gpu = cuda::DescriptorMatcher::createBFMatcher();
+    vector< vector< DMatch> > matches;
+    matcher_gpu->knnMatch(descriptors_objectGPU, descriptors_sceneGPU, matches, 2);
+
+    //-- Step 4: Select only good matches
+    vector<DMatch> good_matches;
+    for (int k = 0; k < std::min(keypoints_scene.size() - 1, matches.size()); k ++) {
+        if ((matches[k][0].distance < 0.8 * (matches[k][1].distance)) &&
+            ((int) matches[k].size() <= 2 && (int) matches[k].size() > 0)) {
+            // take the first result only if its distance is smaller than 0.6*second_best_dist
+            // that means this descriptor is ignored if the second distance is bigger or of similar
+            good_matches.push_back(matches[k][0]);
+        }
+    }
+ 
+#ifdef _VERBOSE_ON_
+    t = 1000 * ((double) getTickCount() - t) / getTickFrequency();
+    cout << "\t | BFMatcher GPU: " << t << " ms ";
+    t = (double) getTickCount();
+#endif
+
+    //***************************************************************//
+    //we must check if found H matrix is good enough. It requires at least 4 points
+    if (good_matches.size() < 4) {
+        cout << "[WARN] Not enough good matches!" << endl;
+        //we fail to estimate new overlap
+        return -2.0;
+    }
+    else {
+        //-- Localize the object
+        vector<Point2f> obj, scene;
+
+        for (int i = 0; i < good_matches.size(); i ++) {
+            //-- Get the keypoints from the good matches
+            obj.push_back(keypoints_object[good_matches[i].queryIdx].pt);
+            scene.push_back(keypoints_scene[good_matches[i].trainIdx].pt);
+        }
+
+        // TODO: As OpenCV 3.2, there is no GPU based implementation for findHomography.
+        // Check http://nghiaho.com/?page_id=611 for an external solution
+        // Avg time: 0.7 ms CPU
+        Mat H = findHomography(obj, scene, RANSAC);
+		
+		if (H.empty())	return -2.0;
+
+        // Old overlap area calc method ----
+        // float dx = fabs(H.at<double>(0, 2));
+        // float dy = fabs(H.at<double>(1, 2));
+        // float overlap = (videoWidth - dx) * (videoHeight - dy) / (videoWidth * videoHeight);
+        
+        float overlap = overlapArea(H)/ (videoWidth * videoHeight);
+
+#ifdef _VERBOSE_ON_
+        t = 1000 * ((double) getTickCount() - t) / getTickFrequency();
+        cout << "\t | Homography: " << t << " ms" << endl;
+        t = (double) getTickCount();
+#endif
+        return overlap;
+    }
+}
+#endif
+
 /*! @fn float calcBlur (Mat frame)
     @brief Calculates the "blur" of a given Mat frame, based on the standard deviation of the Laplacian of the input frame
     @param frame OpenCV matrix container of the input frame
@@ -381,19 +615,8 @@ float calcBlur(Mat frame) {
     // Avg time: 0.7 ms GPU/ 23ms CPU
     Mat grey, laplacian;
     cvtColor(frame, grey, COLOR_BGR2GRAY);
-#ifdef USE_GPU
-    cuda::GpuMat gpuFrame, gpuLaplacian;
-    //upload into GPU memory
-    gpuFrame.upload(grey);
-    //perform Laplacian filter
-    Ptr<cuda::Filter> filter = cuda::createLaplacianFilter(gpuFrame.type(), gpuLaplacian.type(), 1, 1);
-    filter->apply(gpuFrame, gpuLaplacian);    //**/
-    //download from GPU memory
-    gpuLaplacian.download(laplacian);
-#else
     //perform Laplacian filter
     Laplacian(grey, laplacian, grey.type(), CV_16S);
-#endif
     //we compute the laplacian of the current frame
     Scalar mean, stdev;
     // the we compute the mean and stdev of that frame
@@ -422,25 +645,7 @@ float calcOverlap(keyframe* kframe, Mat img_object) {
     int minHessian = 400;
     // Convert to grayscale
     cvtColor(img_object, img_object, COLOR_BGR2GRAY);
-#ifdef USE_GPU
-    cuda::GpuMat gpu_img_object, gpu_img_scene;
-    cuda::GpuMat keypoints_object, keypoints_scene;
-    cuda::GpuMat descriptors_object, descriptors_scene;
-    // Upload to GPU
-    gpu_img_object.upload(img_object);
-    // Detect keypoints
-    cuda::SURF_CUDA surf(minHessian);
-    surf(gpu_img_object, cuda::GpuMat(), keypoints_object, descriptors_object);
-    //-- Step 3: Matching descriptor vectors using BruteForceMatcher
-    surf.downloadKeypoints(keypoints_object, keypoints_object);
-    if(kframe->new_img){
-        cvtColor(kframe->res_img, kframe->res_img, COLOR_BGR2GRAY);
-        gpu_img_scene.upload(kframe->res_img);
-        surf(gpu_img_scene, cuda::GpuMat(), keypoints_scene, descriptors_scene);
-        surf.downloadKeypoints(kframe->keypoints, kframe->keypoints);
-        kframe->new_img = false;
-    }
-#else
+
     Mat descriptors_object, descriptors_scene;
     vector<KeyPoint> keypoints_object, keypoints_scene;
     Ptr<SURF> detector = SURF::create(minHessian);
@@ -451,11 +656,10 @@ float calcOverlap(keyframe* kframe, Mat img_object) {
         detector->detectAndCompute(kframe->res_img, Mat(), kframe->keypoints, kframe->descriptors);
         kframe->new_img = false;
     }
-#endif
+
     keypoints_scene = kframe->keypoints;
     descriptors_scene = kframe->descriptors;
  
-
 #ifdef _VERBOSE_ON_
     t = 1000 * ((double) getTickCount() - t) / getTickFrequency();
     cout << endl << "SURF@GPU: " << t << " ms ";
@@ -467,15 +671,9 @@ float calcOverlap(keyframe* kframe, Mat img_object) {
     // Avg time: 2.5 ms GPU / 21 ms CPU
     double min_dist = 100;
 
-#ifdef USE_GPU
-    Ptr<cuda::DescriptorMatcher> matcher_gpu = cuda::DescriptorMatcher::createBFMatcher();
-    vector<vector<DMatch> > matches;
-    matcher_gpu->knnMatch(descriptors_object, descriptors_scene, matches_gpu, 2);
-#else
     Ptr<BFMatcher> matcher = BFMatcher::create();
     vector<vector<DMatch> > matches;
     matcher->knnMatch(descriptors_object, descriptors_scene, matches, 2);
-#endif
 
     //-- Step 4: Select only good matches
     std::vector<DMatch> good_matches;
