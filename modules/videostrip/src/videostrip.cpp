@@ -1,10 +1,10 @@
 /********************************************************************/
-/* Project: imageproc								                */
-/* Module: 	Videostrip								                */
+/* Project: uwimageproc							*/
+/* Module: 	Videostrip						*/
 /* File: 	videostrip.cpp                                          */
-/* Created:		11/12/2016                                          */
-/* Edited:		30/01/2017, 07:12 PM                                */
-/* Description:						                                
+/* Created:		11/12/2016                                      */
+/* Edited:		30/01/2017, 07:12 PM                            */
+/* Description
 	Module that extracts frames from video for 2D mosaic or 3D model reconstruction. It estimates the overlap among frames
 	by computing the homography matrix. Current OpenCV implementation uses GPU acceleration for feature detection and matching
 	through CUDA library.
@@ -357,7 +357,7 @@ int main(int argc, char *argv[]) {
 /*! @fn float calcBlurGPU (Mat frame)
     @brief Calculates the "blur" of a given Mat frame using GPU, based on the standard deviation of the Laplacian of the input frame
     @param frame OpenCV matrix container of the input frame
-	@retval The estimated blur for the given frame
+    @retval The estimated blur for the given frame
 */
 float calcBlurGPU(Mat frame) {
     // Avg time: 0.7 ms GPU/ 23ms CPU
