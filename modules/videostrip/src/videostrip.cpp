@@ -379,8 +379,11 @@ int main(int argc, char *argv[]) {
 
 /*! @fn float calcBlur (Mat frame)
     @brief Calculates the "blur" of a given Mat frame, based on the standard deviation of the Laplacian of the input frame
-    @param frame OpenCV matrix container of the input frame
-	@retval The estimated blur for the given frame
+ 
+    Applies a Laplacian filter to the input image, and then return its standard deviation as an estimated of the image "blur". It assumes that more blurred images produces a lower value ot stdev(Laplacion(img)), because the Laplacian acts as a simple border detector.
+
+    @param frame cv::Mat container of the input frame
+    @retval float The estimated blur for the given frame
 */
 float calcBlur(Mat frame) {
     // Avg time: 0.7 ms GPU/ 23ms CPU
@@ -409,12 +412,15 @@ float calcBlur(Mat frame) {
     return stdev.val[0];
 }
 
+
 /*! @fn float calcOverlap(Mat img_scene, Mat img_object)
     @brief Calculates the percentage of overlapping among two frames, by estimating the Homography matrix.
-    @param
-            img_scene	Mat OpenCV matrix container of reference frame
-    @param img_object	Mat OpenCV matrix container of target frame
-	@brief retval		The normalized minOverlap among two given frame
+
+    Given two images, computes their homography matrix H using SURF features. With H, calls overlapArea(H) to obtain their normalized overlap area. Both images must have enough common features to provide a valid homography matrix
+
+    @param img_scene	Pointer to keyframe structure that contains the reference frame and other useful data (features, matchs, flags)
+    @param img_object	cv::Mat container of target frame to be compared against current keyframe
+    @brief float	The normalized overlap among two given frame
 */
 float calcOverlap(keyframe* kframe, Mat img_object) {
 	// if any of the input images are empty, then exits with error code
@@ -540,10 +546,19 @@ float calcOverlap(keyframe* kframe, Mat img_object) {
     }
 }
 
-/**
- * @brief Function to obtain the real minOverlap area between transformed and reference frame
- * @param H OpenCV Matrix containing the homography transformation
- * @return float The normalized minOverlap among two given frame
+/** @brief Obtains the area of the overlap between two frames from their homography matrix
+
+The homography matrix must be previously computed (and validated) using any method of estimation, between an origin image and a reference image. Then it creates a 2D rect polygon and representing the boundaries of the origin image, and transforms it according the homography H. Current implementation creates an intersection mask and counts the resulting non-zero elements. A calling example would be:
+
+@code{.cpp}
+        Mat H = findHomography(obj, scene, RANSAC);
+	if (H.empty())	return -2.0;
+        float calcOverlap = overlapArea(H);
+   ...
+@endcode
+
+@param H cv::Mat containing the homography transformation
+@return float The normalized overlap among two given frames
  */
 float overlapArea(Mat H){
     vector<Point2f> points, final_points;
@@ -562,12 +577,14 @@ float overlapArea(Mat H){
 
     Mat mask(TARGET_HEIGHT, TARGET_WIDTH, CV_8UC1, Scalar(0,0,0));
     // Fill the area inside the transformed points
+	// TODO: overlap area can be computed faster through geometrical methods using the vertex of the convex polygon
     fillConvexPoly( mask, points_array, 4, Scalar(255,255,255));
 
     area_img1 = videoWidth * videoHeight;
     area_img2 = contourArea(final_points);
     area_currOverlap = countNonZero(mask);
 
+    //it is supposed that both images have (almost) the same area, so another definition could be area_currOverlap / area_imgRef
     area_percent = area_currOverlap / ( area_img1 + area_img2 - area_currOverlap );
 
     return area_percent;
