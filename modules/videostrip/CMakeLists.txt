@@ -50,6 +50,7 @@ file(GLOB mosaic-include-files
     "../common/*.hxx"
     "../common/*.cpp"
     "include/*.h"
+    "include/*.hpp"
     "src/*.cpp"
 )
 

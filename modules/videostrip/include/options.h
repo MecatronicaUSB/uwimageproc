@@ -7,8 +7,8 @@
  * @author Jose Cappelletto
  */
 
-#ifndef _OPTIONS_
-#define _OPTIONS_
+#ifndef _OPTIONS_H_
+#define _OPTIONS_H_
 
 #include <iostream>
 #include "../../common/args.hxx"

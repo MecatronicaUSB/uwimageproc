@@ -17,6 +17,10 @@
 /********************************************************************/
 //#define _VERBOSE_ON_
 
+#ifndef _VIDEOSTRIP_
+#define _VIDEOSTRIP_
+
+
 ///Basic C and C++ libraries
 #include <iostream>
 #include <iomanip>
@@ -113,3 +117,4 @@ float calcBlurGPU(Mat frame);
 */
 float overlapArea(Mat H);
 
+#endif // _VIDEOSTRIP_
