@@ -1,3 +1,4 @@
+# Prototype of superbuild cmake file, created by CLion 2018 when importing uwimageproc master project
 cmake_minimum_required(VERSION 3.8)
 project(uwimageproc)
 

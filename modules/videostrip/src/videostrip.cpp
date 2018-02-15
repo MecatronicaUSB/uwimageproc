@@ -2,7 +2,6 @@
 /* Project: uwimageproc							*/
 /* Module: 	Videostrip						*/
 /* File: 	videostrip.cpp                                          */
-<<<<<<< HEAD
 /* Created:		11/12/2016                                          */
 /* Edited:		30/01/2017, 07:12 PM                                */
 /* Description:						                                
@@ -41,12 +40,9 @@
 #include "opencv2/calib3d.hpp"
 #include <opencv2/xfeatures2d.hpp>
 
-<<<<<<< HEAD
 #include "../include/options.h"
 // #cmakedefine USE_GPU
 
-=======
->>>>>>> videostriGPUonoff
 /// CUDA specific libraries
 #if USE_GPU
     #include <opencv2/cudafilters.hpp>
@@ -125,7 +121,6 @@ int main(int argc, char *argv[]) {
 
 //*********************************************************************************
 /*	PARSER section */
-<<<<<<< HEAD
     std::string descriptionString = \
     "videostrip - module part of [uwimageproc] toolbox, for smart extraction of video frames.\
     Employs a feature-based homography matrix estimation to calculate the minOverlap among best frames.\
@@ -154,46 +149,10 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    /*
-     * Display son build info
-     */
-=======
-/*  Uses built-in OpenCV parsing method cv::CommandLineParser. It requires a string containing the arguments to be parsed from
-	the command line. Further details can be obtained from opencv webpage
-*/
-    String keys =
-            "{@input |<none>  | Input video path}"    // input image is the first argument (positional)
-                    "{@output |<none> | Prefix for output .jpg images}" // output prefix is the second argument (positional)
-                    "{p      |0.95  | Percent of desired overlap between consecutive frames (0.0 to 1.0)}"
-                    "{k      |      | Defines window size of k-frames for keyframe tuning}"
-                    "{s      | 0    | Skip NN seconds from the start of the video}"
-                    "{cuda    |       | Use CUDA or not (CUDA ON: 1, CUDA OFF: 0)}"         // Use CUDA (if available) or not   
-                    "{help h usage ?  |      | show this help message}";      // optional, show help optional
-
-    CommandLineParser cvParser(argc, argv, keys);
-    cvParser.about("videostrip module v0.3");	//adds "about" information to the parser method
-
-	//if the number of arguments is lower than 3, or contains "help" keyword, then we show the help
-	if (argc < 3 || cvParser.has("help")) {
-        cout << "Automatically extract video frames for 2D mosaic generation or 3D model reconstruction" << endl;
-        cout <<
-        "Computes frame quality based on Laplacian variance, to select best frame that overlaps with previous selected frame" <<
-        endl;
-        cout << "Overlap of consecutive selected frames is estimated through homography matrix H" << endl;
-        cvParser.printMessage();
-        cout << endl << "\tExample:" << endl;
-        cout << "\t$ videostrip -p=0.6 -k=5 -s=12 -cuda=0 input.avi vdout_" << endl;
-        cout <<
-        "\tThis will open 'input.avi' file, extract frames with 60% of overlapping, skipping first 12 seconds, and export into 'vdout_XXXX.jpg' images" << endl << endl;
-        return 0;
-    }
-    int CUDA = 0;                                       //Default option (running with CPU)
-    String InputFile = cvParser.get<cv::String>(0);		//String containing the input file path+name from cvParser function
-    String OutputFile = cvParser.get<cv::String>(1);	//String containing the output file template from cvParser function
-    ostringstream OutputFileName;						// output string that will contain the desired output file name
->>>>>>> videostriGPUonoff
-
     cout << "Built with OpenCV " << CV_VERSION << " @ " << __DATE__ << " - " << __TIME__ << endl;
+
+    int CUDA = 0;                                       //Default option (running with CPU)
+
 #ifdef USE_GPU
     cout << "CUDA mode enabled" << endl;
 #endif
@@ -266,13 +225,7 @@ int main(int argc, char *argv[]) {
     string FileBase = FileName.substr(0, FileName.length() - FileType.length());
 
     //**************************************************************************
-<<<<<<< HEAD
-    int nCuda = - 1;    //<Defines number of detected CUDA devices. By default, -1 acting as error value 
-=======
     int nCuda = - 1;    //<Defines number of detected CUDA devices. By default, -1 acting as error value
-<<<<<<< HEAD
-
->>>>>>> cdb8bfb0c2d71c4029060011bd6fa30bea1a3ee9
 #ifdef USE_GPU
     /* CUDA */
     // TODO: read about possible failure at runtime when calling CUDA methods in non-CUDA hardware.
@@ -290,7 +243,6 @@ int main(int argc, char *argv[]) {
         cout << "Exiting... use non-GPU version instead" << endl;
     }
 #endif
-=======
     #if USE_GPU
         CUDA = cvParser.get<int>("cuda");	        // gets argument -cuda=x, where 'x' define to use CUDA or not
         nCuda = cuda::getCudaEnabledDeviceCount();	// Try to detect any existing CUDA device
@@ -311,7 +263,6 @@ int main(int argc, char *argv[]) {
             cout << "Exiting... use non-GPU version instead" << endl;
         }
     #endif
->>>>>>> videostriGPUonoff
     // TODO: How to operate when multiple CUDA devices are detected?
     // So far, we work with the first detected CUDA device. Maybe, add some CUDA probe mode when called
 
@@ -393,17 +344,12 @@ int main(int argc, char *argv[]) {
         resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);
         #if USE_GPU
         if(CUDA)
-            over = calcOverlapGPU(&kframe, res_frame);
+            currOverlap = calcOverlapGPU(&kframe, res_frame);
         #endif
         if(not CUDA)
-            over = calcOverlap(&kframe, res_frame);
+            currOverlap = calcOverlap(&kframe, res_frame);
 
-<<<<<<< HEAD
-        currOverlap = calcOverlap(&kframe, res_frame);
         cout << '\r' << "Frame: " << read_frame << " [" << out_frame << "]\tOverlap: " << currOverlap << std::flush;
-=======
-        cout << '\r' << "Frame: " << read_frame << " [" << out_frame << "]\tOverlap: " << over << std::flush;
->>>>>>> cdb8bfb0c2d71c4029060011bd6fa30bea1a3ee9
 
 	//special case: minOverlap cannot be computed, we force it with an impossible negative value
         // TODO: check better numerically stable way to detect failed minOverlap detection, rather through forced value
@@ -439,9 +385,6 @@ int main(int argc, char *argv[]) {
 				}
                 read_frame ++;
                 resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);    //uses a resized version
-<<<<<<< HEAD
-                currBlur = calcBlur(res_frame);    //we operate currOverlap the resampled image for speed purposes
-=======
 
                 //we operate over the resampled image for speed purposes
                 #if USE_GPU
@@ -450,7 +393,6 @@ int main(int argc, char *argv[]) {
                 #endif
                 if(not CUDA)
                     currBlur = calcBlur(res_frame);    
->>>>>>> cdb8bfb0c2d71c4029060011bd6fa30bea1a3ee9
 
                 cout << '\r' << "Refining for Blur [" << n+1 << "/" << kWindow << "]\tBlur: " << currBlur << "\tBest: " << bestBlur << std::flush;
                 if (currBlur > bestBlur) {    //if current blur is better, replaces best frame
@@ -487,25 +429,11 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-<<<<<<< HEAD
-/*! @fn float calcBlur (Mat frame)
-    @brief Calculates the "blur" of a given Mat frame, based on the standard deviation of the Laplacian of the input frame
- 
-    Applies a Laplacian filter to the input image, and then return its standard deviation as an estimated of the image "blur". It assumes that more blurred images produces a lower value ot stdev(Laplacion(img)), because the Laplacian acts as a simple border detector.
-
-    @param frame cv::Mat container of the input frame
-    @retval float The estimated blur for the given frame
-=======
 #if USE_GPU
 /*! @fn float calcBlurGPU (Mat frame)
     @brief Calculates the "blur" of a given Mat frame using GPU, based on the standard deviation of the Laplacian of the input frame
     @param frame OpenCV matrix container of the input frame
-<<<<<<< HEAD
 	@retval The estimated blur for the given frame
->>>>>>> cdb8bfb0c2d71c4029060011bd6fa30bea1a3ee9
-=======
-    @retval The estimated blur for the given frame
->>>>>>> videostriGPUonoff
 */
 float calcBlurGPU(Mat frame) {
     // Avg time: 0.7 ms GPU/ 23ms CPU
@@ -531,24 +459,14 @@ float calcBlurGPU(Mat frame) {
     return stdev.val[0];
 }
 
-<<<<<<< HEAD
-
-/*! @fn float calcOverlap(Mat img_scene, Mat img_object)
-    @brief Calculates the percentage of overlapping among two frames, by estimating the Homography matrix.
+/*! @fn float calcOverlapGPU(keyframe* kframe, Mat img_object)
+    @brief Calculates the percentage of overlapping among two frames using GPU, by estimating the Homography matrix.
 
     Given two images, computes their homography matrix H using SURF features. With H, calls overlapArea(H) to obtain their normalized overlap area. Both images must have enough common features to provide a valid homography matrix
 
-    @param img_scene	Pointer to keyframe structure that contains the reference frame and other useful data (features, matchs, flags)
+    @param img_scene	keyframe* pointer to current keyframe structure
     @param img_object	cv::Mat container of target frame to be compared against current keyframe
-    @brief float	The normalized overlap among two given frame
-=======
-/*! @fn float calcOverlapGPU(Mat img_scene, Mat img_object)
-    @brief Calculates the percentage of overlapping among two frames using GPU, by estimating the Homography matrix.
-    @param
-            img_scene	Mat OpenCV matrix container of reference frame
-    @param img_object	Mat OpenCV matrix container of target frame
 	@brief retval		The normalized overlap among two given frame
->>>>>>> cdb8bfb0c2d71c4029060011bd6fa30bea1a3ee9
 */
 float calcOverlapGPU(keyframe* kframe, Mat img_object) {
 	// if any of the input images are empty, then exits with error code
@@ -656,13 +574,16 @@ float calcOverlapGPU(keyframe* kframe, Mat img_object) {
         return overlap;
     }
 }
-#endif
+#endif //endif GPU
 
 /*! @fn float calcBlur (Mat frame)
     @brief Calculates the "blur" of a given Mat frame, based on the standard deviation of the Laplacian of the input frame
-    @param frame OpenCV matrix container of the input frame
-	@retval The estimated blur for the given frame
-*/
+ 
+    Applies a Laplacian filter to the input image, and then return its standard deviation as an estimated of the image "blur". It assumes that more blurred images produces a lower value ot stdev(Laplacion(img)), because the Laplacian acts as a simple border detector.
+
+    @param frame cv::Mat container of the input frame
+    @retval float The estimated blur for the given frame*/
+
 float calcBlur(Mat frame) {
     // Avg time: 0.7 ms GPU/ 23ms CPU
     Mat grey, laplacian;
