@@ -86,13 +86,13 @@ for file in $FILE_LIST; do
 	INPUT=$file
 
 	# Now, we check for the '-c' flag, in order to create the required folder
-	OUTPUT=$FULL_PATH"/"$ID"_%4d."$OUTPUT_FMT
+	OUTPUT=$FULL_PATH"/"$NAME_PREFIX$ID"_%4d."$OUTPUT_FMT
 	if ($CREATE_FOLDER); then
 		echo "Creating directory "$ID
 		mkdir $FULL_PATH'/'$ID
 
 		# Finally we must modify the $OUTPUT path in order to include the folder
-		OUTPUT=$FULL_PATH"/$ID/"$NAME_PREFIX$ID"_%4d."$OUTPUT_FMT
+		OUTPUT=$FULL_PATH"/$ID/"$ID"_%4d."$OUTPUT_FMT
 	fi
 	
 	# TODO: maybe we could check if ffmpeg is installed instead of avconv. Or provide a feature with smart selection between both 	
