@@ -8,7 +8,7 @@
 # if no argument is provided, the print basic usage
 if [ -z "$1" ]; then 
 	echo Usage: \n
-	echo extract_frames -i input [-v video_format] [-r frame_rate] [-n num_subfolders] [-c] [-f output_format]
+	echo extract_frames -i input [-v video_format] [-r frame_rate] [-n num_subfolders] [-c] [-f output_format] [-p name_prefix]
 	echo "************************************************************************************************"
 	echo "Example: extract_frames -i /directory/with/videos -v mpg -r 5 -n 4 -f jpg"
 	echo -e '\t' "This example will search for 'mpg' files contained at '/directory/with/videos' and will extract"
@@ -27,7 +27,7 @@ FRAME_RATE=4
 OUTPUT_FMT='jpg'
 CREATE_FOLDER=false
 
-while getopts "i:r:v:f:c" opt; do
+while getopts "i:r:v:f:c:p" opt; do
   case $opt in
     i)
 	PATH_BASE=$OPTARG 
@@ -43,6 +43,9 @@ while getopts "i:r:v:f:c" opt; do
 #	;;
     f)
 	OUTPUT_FMT=$OPTARG 
+	;;
+    p)
+	NAME_PREFIX=$OPTARG 
 	;;
     c)
 	CREATE_FOLDER=true
@@ -89,7 +92,7 @@ for file in $FILE_LIST; do
 		mkdir $FULL_PATH'/'$ID
 
 		# Finally we must modify the $OUTPUT path in order to include the folder
-		OUTPUT=$FULL_PATH"/$ID/"$ID"_%4d."$OUTPUT_FMT
+		OUTPUT=$FULL_PATH"/$ID/"$NAME_PREFIX$ID"_%4d."$OUTPUT_FMT
 	fi
 	
 	# TODO: maybe we could check if ffmpeg is installed instead of avconv. Or provide a feature with smart selection between both 	
