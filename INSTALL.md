@@ -52,13 +52,13 @@ cd <some_directory>
 
 **Download OpenCV source code**
 ```bash
-wget https://github.com/opencv/opencv/archive/3.2.0.tar.gz .
+wget https://github.com/opencv/opencv/archive/3.2.0.tar.gz opencv-3.2.0.tar.gz
 tar xvf opencv-3.2.0.tar.gz 
 ```
 
 **Download OpenCV contrib**
 ```bash
-wget https://github.com/opencv/opencv_contrib/archive/3.2.0.tar.gz -O opencv_contrib-master.zip
+wget https://github.com/opencv/opencv_contrib/archive/3.2.0.tar.gz -O opencv_contrib-3.2.0.tar.gz
 unzip opencv_contrib-master.zip
 ```
 *Specified contrib package may have some bugs when compiled against OpenCV 3.2.0*
