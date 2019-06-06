@@ -76,6 +76,7 @@ sudo dpkg -i cuda-repo-ubuntu1604-8-0-local_8.0.44-1_amd64.deb
 sudo apt-get update
 sudo apt-get install cuda
 ```
+*Warning:*  # In CUDA 8.0 NPPI was split in many libraries, FindCUDA.cmake must be update to [https://github.com/opencv/opencv/blob/master/cmake/FindCUDA.cmake]
 
 ### Installation without CUDA
 ```bash
