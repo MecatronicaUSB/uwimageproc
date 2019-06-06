@@ -59,9 +59,8 @@ tar xvf opencv-3.2.0.tar.gz
 **Download OpenCV contrib**
 ```bash
 wget https://github.com/opencv/opencv_contrib/archive/3.2.0.tar.gz -O opencv_contrib-3.2.0.tar.gz
-unzip opencv_contrib-master.zip
+tar xvf opencv_contrib-3.2.0.tar.gz
 ```
-*Specified contrib package may have some bugs when compiled against OpenCV 3.2.0*
 
 **OpenCL Support**
 ```bash
