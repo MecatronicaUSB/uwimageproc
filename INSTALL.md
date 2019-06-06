@@ -1,10 +1,10 @@
 # Installing OpenCV and CUDA 
 
-Step-by-step installation instructions for the development environment setup, with OpenCV 3.2 and contrib with CUDA support for Ubuntu 16.04 x64.
+Step-by-step installation instructions for the development environment setup, with OpenCV 3.4.6 and contrib with CUDA support for Ubuntu 16.04 x64.
 
 ## Table of Contents
 - [Preparing the system](#preparing-the-system)
-- [OpenCV 3.2](#opencv-32)
+- [OpenCV 3.4.6](#opencv-34)
 - [CUDA 8.0](#cuda-80-optional)
 - [Installation without CUDA](#installation-without-cuda)
 - [Installation with CUDA](#installation-with-cuda)
@@ -44,7 +44,7 @@ sudo apt-get install libatlas-base-dev gfortran
 sudo apt-get install python2.7-dev python3.5-dev
 ```
 
-## OpenCV 3.2
+## OpenCV 3.4.6
 Choose a path for installation:
 ```bash
 cd <some_directory>
@@ -52,14 +52,14 @@ cd <some_directory>
 
 **Download OpenCV source code**
 ```bash
-wget https://github.com/opencv/opencv/archive/3.2.0.tar.gz opencv-3.2.0.tar.gz
-tar xvf opencv-3.2.0.tar.gz 
+wget https://github.com/opencv/opencv/archive/3.4.6.tar.gz opencv-3.4.6.tar.gz
+tar xvf opencv-3.4.6.tar.gz 
 ```
 
 **Download OpenCV contrib**
 ```bash
-wget https://github.com/opencv/opencv_contrib/archive/3.2.0.tar.gz -O opencv_contrib-3.2.0.tar.gz
-tar xvf opencv_contrib-3.2.0.tar.gz
+wget https://github.com/opencv/opencv_contrib/archive/3.4.6.tar.gz -O opencv_contrib-3.4.6.tar.gz
+tar xvf opencv_contrib-3.4.6.tar.gz
 ```
 
 **OpenCL Support**
@@ -68,18 +68,16 @@ sudo apt-get install libgtkglext1 libgtkglext1-dev
 ```
 
 ### CUDA 8.0 (optional)
-The recommended version is 8.0, yet you could try with a different version. We would like to know about implementations with CUDA 9.0.
+The recommended version is 8.0, yet you could try with a different version. These instructions have been tested with CUDA 10
 ```bash-
 wget https://developer.nvidia.com/compute/cuda/8.0/Prod2/local_installers/cuda-repo-ubuntu1604-8-0-local-ga2_8.0.61-1_amd64-deb
 sudo dpkg -i cuda-repo-ubuntu1604-8-0-local_8.0.44-1_amd64.deb
 sudo apt-get update
 sudo apt-get install cuda
 ```
-*Warning:*  # In CUDA 8.0 NPPI was split in many libraries, FindCUDA.cmake must be update to [https://github.com/opencv/opencv/blob/master/cmake/FindCUDA.cmake]
-
 ### Installation without CUDA
 ```bash
-cd opencv-3.2.0/
+cd opencv-3.4.6/
 mkdir build
 cd build
 
@@ -91,7 +89,7 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE \
     -D CUDA_FAST_MATH=0 \
     -D WITH_CUBLAS=1 \
     -D INSTALL_PYTHON_EXAMPLES=OFF \
-    -D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib-master/modules \
+    -D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib-3.4.6/modules \
     -DBUILD_PNG=ON \
     -DBUILD_TIFF=ON \
     -DBUILD_JPEG=OFF \
@@ -114,7 +112,7 @@ sudo make install
 
 ### Installation with CUDA
 ```bash
-cd opencv-3.2.0/
+cd opencv-3.4.6/
 mkdir build
 cd build
 
@@ -126,7 +124,7 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE \
     -D CUDA_FAST_MATH=1 \
     -D WITH_CUBLAS=1 \
     -D INSTALL_PYTHON_EXAMPLES=OFF \
-    -D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib-3.2.0/modules \
+    -D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib-3.4.6/modules \
     -DBUILD_PNG=ON \
     -DBUILD_TIFF=ON \
     -DBUILD_JPEG=OFF \
