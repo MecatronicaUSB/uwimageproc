@@ -214,14 +214,14 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
     //now we retrieve and print info about input video
-    videoWidth = capture.get(CV_CAP_PROP_FRAME_WIDTH);
-    videoHeight = capture.get(CV_CAP_PROP_FRAME_HEIGHT);
+    videoWidth = capture.get(CAP_PROP_FRAME_WIDTH);
+    videoHeight = capture.get(CAP_PROP_FRAME_HEIGHT);
 
     // we compute the resize factor for the horizontal dimension. As we preserve the aspect ratio, is the same for the vertical resizing
     hResizeFactor = (float) TARGET_WIDTH / videoWidth;
 
-    float videoFPS = capture.get(CV_CAP_PROP_FPS);
-    int videoFrames = capture.get(CV_CAP_PROP_FRAME_COUNT);
+    float videoFPS = capture.get(CAP_PROP_FPS);
+    int videoFrames = capture.get(CAP_PROP_FRAME_COUNT);
 
     cout << "Video metadata:" << endl;
     cout << "\tSize:\t" << videoWidth << " x " << videoHeight << endl;
@@ -235,7 +235,7 @@ int main(int argc, char *argv[]) {
 	float frameSkip;
 	if (timeSkip > 0){
 		frameSkip = (float)timeSkip * videoFrames;
-		capture.set(CV_CAP_PROP_POS_MSEC, timeSkip*1000);
+		capture.set(CAP_PROP_POS_MSEC, timeSkip*1000);
 	}
 
     //**************************************************************************
@@ -254,7 +254,7 @@ int main(int argc, char *argv[]) {
     kframe.new_img = true;
     // resizing for speed purposes
     resize(kframe.img, kframe.res_img, cv::Size(hResizeFactor * kframe.img.cols, hResizeFactor * kframe.img.rows), 0, 0,
-           CV_INTER_LINEAR);
+           INTER_LINEAR);
     // TODO: This second way to call 'resize' may be faster
     //resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);
 
