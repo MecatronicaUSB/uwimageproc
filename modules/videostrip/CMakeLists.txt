@@ -45,7 +45,7 @@ if(CMAKE_VERSION VERSION_LESS "2.8.11")
   include_directories(${OpenCV_INCLUDE_DIRS})
 endif()
 
-file(GLOB mosaic-include-files
+file(GLOB videostrip-include-files
     "../common/*.h"
     "../common/*.hxx"
     "../common/*.cpp"
@@ -54,7 +54,7 @@ file(GLOB mosaic-include-files
     "src/*.cpp"
 )
 
-add_executable(videostrip ${mosaic-include-files})
+add_executable(videostrip ${videostrip-include-files})
 target_compile_options(videostrip PUBLIC -std=c++11)
 
  # Declare the executable target built from your sources
@@ -70,6 +70,3 @@ else()
   # Link your application with OpenCV libraries
  target_link_libraries(videostrip ${OpenCV_LIBS})
 endif(CUDA_FOUND)
-
-
-
