@@ -57,13 +57,17 @@ int main(int argc, char *argv[]) {
 /*	PARSER section */
     std::string descriptionString = \
     "videostrip - module part of [uwimageproc] toolbox, for smart extraction of video frames.\
-    Employs a feature-based homography matrix estimation to calculate the minOverlap among best frames.\
-    Frame quality is based on Laplacian variance, in order to select the best frame that overlaps with previous selected frame";
+    Employs feature-based homography matrix estimator to calculate the minOverlap among best frames.\
+    Frame quality is determined using Laplacian variance, in order to select the best frame that overlaps with previous selected frame";
 
     argParser.Description(descriptionString);
     argParser.Epilog("Author: J. Cappelletto (GitHub: @cappelletto)\nVisit [https://github.com/mecatronicaUSB] for project information\n");
     argParser.Prog(argv[0]);
     argParser.helpParams.width = 120;
+
+    cout << "\tOpenCV version:\t" << yellow << CV_VERSION << reset << std::endl;
+    cout << "\tGit commit:\t" << yellow << GIT_COMMIT << reset << std::endl;
+    cout << "\tBuilt:\t" << __DATE__ << " - " << __TIME__ << std::endl;
 
     try{
         argParser.ParseCLI(argc, argv);
@@ -83,12 +87,10 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    cout << "Built with OpenCV " << CV_VERSION << " @ " << __DATE__ << " - " << __TIME__ << endl;
-
     int CUDA = 0;                                       //Default option (running with CPU)
 
 #ifdef USE_GPU
-    cout << "CUDA mode enabled" << endl;
+    cout << "CUDA mode enabled" << std::endl;
 #endif
     /*
      * Start parsing mandatory arguments

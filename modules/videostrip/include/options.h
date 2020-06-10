@@ -23,3 +23,9 @@ args::Positional<std::string> 	argInput(argParser, "input", "Input file name");
 args::Positional<std::string> 	argOutput(argParser, "output", "Prefix for output JPG image files");
 
 #endif
+
+const string green("\033[1;32m");
+const string yellow("\033[1;33m");
+const string cyan("\033[1;36m");
+const string red("\033[1;31m");
+const string reset("\033[0m");
