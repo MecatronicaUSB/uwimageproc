@@ -8,7 +8,7 @@ project(video_strip_project)
 # to the absolute path to the directory containing OpenCVConfig.cmake file
 # via the command line or GUI
 
-find_package(OpenCV REQUIRED
+find_package(OpenCV 3.2 REQUIRED
 NO_MODULE
 PATHS /usr/local
 NO_DEFAULT_PATH)
@@ -53,6 +53,15 @@ file(GLOB mosaic-include-files
     "include/*.hpp"
     "src/*.cpp"
 )
+
+# Retrieve git commit information that is forwarded at compilation time
+exec_program(
+    "git"
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ARGS "describe --abbrev=4 --dirty --always --tags"
+    OUTPUT_VARIABLE GIT_INFO )
+# fwd git commit info via GIT_COMMIT variable
+add_definitions( -DGIT_COMMIT="${GIT_INFO}" )
 
 add_executable(videostrip ${mosaic-include-files})
 target_compile_options(videostrip PUBLIC -std=c++11)
