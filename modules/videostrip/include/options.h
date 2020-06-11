@@ -16,11 +16,12 @@
 args::ArgumentParser 	argParser("","");
 args::HelpFlag 	argHelp(argParser, "help", "Display this help menu", {'h', "help"});
 //CompletionFlag completion(cliParser, {"complete"});	//TODO: figure out why is missing in current version of args.hxx
-args::ValueFlag	<int> 		argWindowSize(argParser, "window size", "Size of the search window for the best frame", {'k'});
-args::ValueFlag	<int> 		argTimeSkip(argParser, "time skip", "Time (in seconds) skipped from the start of video", {'s'});
-args::ValueFlag	<double> 	argOverlap(argParser, "overlap", "Desired maximum overlap among frames", {'p'});
+args::ValueFlag	<int> 		argWindowSize(argParser, "window size", "Size of the search window for the best frame", {'k', "windowSize"});
+args::ValueFlag	<int> 		argTimeSkip(argParser, "time skip", "Time (in seconds) skipped from the start of video", {'s', "timeSkip"});
+args::ValueFlag	<double> 	argOverlap(argParser, "overlap", "Desired maximum overlap among frames", {'p',"minOverlap"});
 args::Positional<std::string> 	argInput(argParser, "input", "Input file name");
 args::Positional<std::string> 	argOutput(argParser, "output", "Prefix for output JPG image files");
+args::ValueFlag <bool>		argReport(argParser, "report", "Generate report file containing detailed information for each exported frame", {'r', "--report"});
 
 #endif
 

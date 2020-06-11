@@ -112,6 +112,19 @@ int main(int argc, char *argv[]) {
     String InputFile = args::get(argInput);	//String containing the input file path+name from cvParser function
     String OutputFile = args::get(argOutput);	//String containing the output file template from cvParser function
     ostringstream OutputFileName;				// output string that will contain the desired output file name
+
+	/*
+	 *	Generate report file
+	 */
+    ofstream reportFile;
+    String reportFileName = OutputFile + "videostrip_report.txt";
+    reportFile.open(reportFileName, std::ofstream::out);
+
+    reportFile << "videostrip" << endl;
+    reportFile << "\tOpenCV version:\t" << CV_VERSION  << endl;
+    reportFile << "\tGit commit:\t" << GIT_COMMIT  << endl;
+    reportFile << "\tBuilt:\t" << __DATE__ << " - " << __TIME__ << endl;
+
     /*
      * These were the mandatory arguments. Now we proceed to optional parameters.
      * When each variable is defined, we assign the default value.
@@ -124,26 +137,25 @@ int main(int argc, char *argv[]) {
      * Now, start verifying each optional argument from argParser
      */
 
-    if (argTimeSkip){
+    if (argTimeSkip)
         cout << "[timeSkip] value provided: " << (timeSkip = args::get(argTimeSkip)) << endl;
-    }
-    else{
+    else
         cout << "[timeSkip] using default value: " << timeSkip << endl;
-    }
 
-    if (argWindowSize){
+    if (argWindowSize)
         cout << "[windowSize] value provided: " << (kWindow = args::get(argWindowSize)) << endl;
-    }
-    else{
+    else
         cout << "[windowSize] using default value: " << kWindow << endl;
-    }
 
-    if (argOverlap){
+    if (argOverlap)
         cout << "[minOverlap] value provided: " << (minOverlap = args::get(argOverlap)) << endl;
-    }
-    else{
+    else
         cout << "[minOverlap] using default value: " << minOverlap << endl;
-    }
+
+    if (argReport)
+        cout << "[reportFlag] detailed output report will be exported to: " << reportFileName << endl;
+    else
+        cout << "[reportFlag] no report will be generated " << minOverlap << endl;
 
     //************************************************************************
     /* FILENAME */
@@ -206,6 +218,8 @@ int main(int argc, char *argv[]) {
     cout << "***************************************" << endl;
     cout << "Input: " << InputFile << endl;
 
+    reportFile << "***************************************" << endl;
+    reportFile << "Input: " << InputFile << endl;
     //**************************************************************************
     /* VIDEO INPUT */
 
@@ -233,6 +247,16 @@ int main(int argc, char *argv[]) {
     cout << "Target minOverlap:\t" << minOverlap << endl;
     cout << "Window size:\t" << kWindow << endl;
 	if (timeSkip > 0) cout << "Time skip:\t" << timeSkip << endl;
+
+    reportFile << "Video metadata:" << endl;
+    reportFile << "\tSize:\t" << videoWidth << " x " << videoHeight << endl;
+    reportFile << "\tFrames:\t" << videoFrames << " @ " << videoFPS << endl;
+    reportFile << "\thResize:\t" << hResizeFactor << endl;
+    reportFile << "Target minOverlap:\t" << minOverlap << endl;
+    reportFile << "Window size:\t" << kWindow << endl;
+	if (timeSkip > 0) reportFile << "Time skip:\t" << timeSkip << endl;
+    reportFile << "***************************************" << endl;
+    reportFile << "ID\tFrame\tFilename\tOverlap\tBlur" << endl;
 
 	//we compute the (exact) number of frames to be skipped, given a desired amount of seconds to skip from start
 	float frameSkip;
@@ -265,6 +289,8 @@ int main(int argc, char *argv[]) {
     OutputFileName.str("");
     OutputFileName << OutputFile << setfill('0') << setw(4) << out_frame << ".jpg";
     imwrite(OutputFileName.str(), kframe.img);
+//    reportFile << "ID\tFrame\tFilename\tOverlap\tBlur" << endl;
+    reportFile << "0\t0\t" << OutputFileName.str() << "\t" << "1.0\t1.0" << endl;
 
     // exits when pressed 'ESC' or 'q'
     while (keyboard != 'q' && keyboard != 27) {
@@ -352,8 +378,9 @@ int main(int argc, char *argv[]) {
 //			cout << endl << "frame:\t" << cyan <<  current_frame << reset << endl;
 //			cout << "out_frame:\t" << yellow << out_frame << reset << endl;
 //			cout << "best_frame:\t" << red << best_frame_number << reset << endl;
-            cout << endl << green << "Exported frame: " << reset << best_frame_number << " [" << out_frame << "]" << endl;
             imwrite(OutputFileName.str(), bestframe);
+            cout << endl << green << "Exported frame: " << reset << best_frame_number << " [" << out_frame << "]" << endl;
+		    reportFile << out_frame << "\t" << best_frame_number << "\t" << OutputFileName.str() <<"\t" << currOverlap << "\t" << bestBlur << endl;
 
 #ifdef _VERBOSE_ON_
             t = 1000 * ((double) getTickCount() - t) / getTickFrequency();
@@ -369,7 +396,7 @@ int main(int argc, char *argv[]) {
     }
     //delete capture object
     capture.release();
-
+    reportFile.close();
 //*****************************************************************************
     return 0;
 }
