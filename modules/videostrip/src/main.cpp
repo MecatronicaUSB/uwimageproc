@@ -65,9 +65,10 @@ int main(int argc, char *argv[]) {
     argParser.Prog(argv[0]);
     argParser.helpParams.width = 120;
 
-    cout << "\tOpenCV version:\t" << yellow << CV_VERSION << reset << std::endl;
-    cout << "\tGit commit:\t" << yellow << GIT_COMMIT << reset << std::endl;
-    cout << "\tBuilt:\t" << __DATE__ << " - " << __TIME__ << std::endl;
+    cout << cyan << "videostrip" << reset << endl;
+    cout << "\tOpenCV version:\t" << yellow << CV_VERSION << reset << endl;
+    cout << "\tGit commit:\t" << yellow << GIT_COMMIT << reset << endl;
+    cout << "\tBuilt:\t" << __DATE__ << " - " << __TIME__ << endl;
 
     try{
         argParser.ParseCLI(argc, argv);
@@ -90,7 +91,7 @@ int main(int argc, char *argv[]) {
     int CUDA = 0;                                       //Default option (running with CPU)
 
 #ifdef USE_GPU
-    cout << "CUDA mode enabled" << std::endl;
+    cout << green << "CUDA mode enabled" << reset << std::endl;
 #endif
     /*
      * Start parsing mandatory arguments
@@ -124,24 +125,24 @@ int main(int argc, char *argv[]) {
      */
 
     if (argTimeSkip){
-        cout << "timeSkip value provided: " << (timeSkip = args::get(argTimeSkip)) << endl;
+        cout << "[timeSkip] value provided: " << (timeSkip = args::get(argTimeSkip)) << endl;
     }
     else{
-        cout << "timeSkip default value: " << timeSkip << endl;
+        cout << "[timeSkip] using default value: " << timeSkip << endl;
     }
 
     if (argWindowSize){
-        cout << "windowSize value provided: " << (kWindow = args::get(argWindowSize)) << endl;
+        cout << "[windowSize] value provided: " << (kWindow = args::get(argWindowSize)) << endl;
     }
     else{
-        cout << "windowSize default value: " << kWindow << endl;
+        cout << "[windowSize] using default value: " << kWindow << endl;
     }
 
     if (argOverlap){
-        cout << "minOverlap value provided: " << (minOverlap = args::get(argOverlap)) << endl;
+        cout << "[minOverlap] value provided: " << (minOverlap = args::get(argOverlap)) << endl;
     }
     else{
-        cout << "minOverlap default value: " << minOverlap << endl;
+        cout << "[minOverlap] using default value: " << minOverlap << endl;
     }
 
     //************************************************************************
@@ -170,12 +171,12 @@ int main(int argc, char *argv[]) {
     cuda::DeviceInfo deviceInfo;
 
     if (nCuda > 0){
-        cout << "CUDA enabled devices detected: " << deviceInfo.name() << endl;
+        cout << green << "CUDA enabled devices detected: " << reset << deviceInfo.name() << endl;
         cuda::setDevice(0);
     }
     else {
 #undef USE_GPU
-        cout << "No CUDA device detected" << endl;
+        cout << red << "No CUDA device detected" << reset << endl;
         cout << "Exiting... use non-GPU version instead" << endl;
     }
 #endif
@@ -184,7 +185,7 @@ int main(int argc, char *argv[]) {
         nCuda = cuda::getCudaEnabledDeviceCount();	// Try to detect any existing CUDA device
         // Deactivate CUDA from parse
         if (CUDA == 0){            
-            cout << "CUDA deactivated" << endl;
+            cout << yellow << "CUDA deactivated" << reset << endl;
             cout << "Exiting... use non-GPU version instead" << endl;
         }
         // Find CUDA devices
@@ -212,7 +213,7 @@ int main(int argc, char *argv[]) {
     VideoCapture capture(InputFile);
     if (! capture.isOpened()) {
         //error while opening the video input
-        cerr << "Unable to open video file: " << InputFile << endl;
+        cout << red << "Unable to open video file: " << InputFile << endl;
         exit(EXIT_FAILURE);
     }
     //now we retrieve and print info about input video
@@ -230,7 +231,7 @@ int main(int argc, char *argv[]) {
     cout << "\tFrames:\t" << videoFrames << " @ " << videoFPS << endl;
     cout << "\thResize:\t" << hResizeFactor << endl;
     cout << "Target minOverlap:\t" << minOverlap << endl;
-    cout << "K-Window size:\t" << kWindow << endl;
+    cout << "Window size:\t" << kWindow << endl;
 	if (timeSkip > 0) cout << "Time skip:\t" << timeSkip << endl;
 
 	//we compute the (exact) number of frames to be skipped, given a desired amount of seconds to skip from start
@@ -249,7 +250,7 @@ int main(int argc, char *argv[]) {
     keyframe kframe; 
     
     float currOverlap;	//current overlap value
-    int out_frame = 0, read_frame = 0;
+    int out_frame = 0, read_frame = 0;	//frame counters
 
     // we use the first frame as keyframe (so far, further implementations should include cli arg to pick one by user)
     capture.read(kframe.img);    read_frame ++;
@@ -274,7 +275,7 @@ int main(int argc, char *argv[]) {
             cerr << "Exiting..." << endl;
             exit(EXIT_FAILURE);
         }
-        read_frame ++;
+        read_frame++;	//successfully read a new frame, we continue...
 
         float bestBlur = 0.0, currBlur;    //we start using the current frame blur as best blur value
         resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);
@@ -285,10 +286,10 @@ int main(int argc, char *argv[]) {
         if(not CUDA)
             currOverlap = calcOverlap(&kframe, res_frame);
 
-        cout << '\r' << "Frame: " << read_frame << " [" << out_frame << "]\tOverlap: " << currOverlap << std::flush;
+        cout << '\r' << yellow << "Frame: " << reset << (read_frame - 1) << "\tOverlap: " << currOverlap << std::flush;
 
 	//special case: minOverlap cannot be computed, we force it with an impossible negative value
-        // TODO: check better numerically stable way to detect failed minOverlap detection, rather through forced value
+        // TODO: check better numerically stable way to detect failed minOverlap detection, rather than using a forced value
 		if (currOverlap == -2.0){
             /*cout << endl << "Forcing current new keyframe" << endl;
 			keyframe = frame.clone();		
@@ -310,7 +311,9 @@ int main(int argc, char *argv[]) {
             if(not CUDA)
                 bestBlur = calcBlur(res_frame);
 
-            bestframe = frame.clone();
+            int best_frame_number = capture.get(CAP_PROP_POS_FRAMES) - 1;
+            bestframe = frame.clone();	// we copy this new frame as the best frame
+
             //for each frame inside the k-consecutive frame window, we refine the search
             for (int n = 0; n < kWindow; n ++) {
 
@@ -319,7 +322,7 @@ int main(int argc, char *argv[]) {
 				    cerr << "Ending..." << endl;
 				    exit(EXIT_FAILURE);
 				}
-                read_frame ++;
+                read_frame ++;	//we read another frame
                 resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);    //uses a resized version
 
                 //we operate over the resampled image for speed purposes
@@ -330,20 +333,26 @@ int main(int argc, char *argv[]) {
                 if(not CUDA)
                     currBlur = calcBlur(res_frame);    
 
-                cout << '\r' << "Refining for Blur [" << n+1 << "/" << kWindow << "]\tBlur: " << currBlur << "\tBest: " << bestBlur << std::flush;
+                cout << '\r' << "Refining search [" << n+1 << "/" << kWindow << "]\tBlur: " << currBlur << "\tBest: " << bestBlur << std::flush;
                 if (currBlur > bestBlur) {    //if current blur is better, replaces best frame
                     bestBlur = currBlur;
-                    bestframe = frame.clone();  //best fram is a copy of frame
+                    bestframe = frame.clone();  //best frame is a copy of frame
+            		best_frame_number = read_frame;
                 }
             }
-            //< finally the new keyframe is the best frame from las iteration
+            //< finally the new keyframe is the best frame from last iteration
             kframe.img = bestframe.clone();
             kframe.new_img = true;
-            out_frame ++;
+            out_frame++;	//increase the number of frames exported
 
             OutputFileName.str("");
             OutputFileName << OutputFile << setfill('0') << setw(4) << out_frame << ".jpg";
 
+//           int current_frame = capture.get(CAP_PROP_POS_FRAMES) - 1; //returns next frame number to be retrieved 
+//			cout << endl << "frame:\t" << cyan <<  current_frame << reset << endl;
+//			cout << "out_frame:\t" << yellow << out_frame << reset << endl;
+//			cout << "best_frame:\t" << red << best_frame_number << reset << endl;
+            cout << endl << green << "Exported frame: " << reset << best_frame_number << " [" << out_frame << "]" << endl;
             imwrite(OutputFileName.str(), bestframe);
 
 #ifdef _VERBOSE_ON_
@@ -351,8 +360,8 @@ int main(int argc, char *argv[]) {
             cout << endl << "BestBlur: " << t << " ms" << endl;
             t = (double) getTickCount();
 #endif
-			cout << "..." << endl;
             resize(kframe.img, kframe.res_img, cv::Size(), hResizeFactor, hResizeFactor);
+			cout << "*************" << endl;
         }
 
         //get the input from the keyboard
@@ -364,4 +373,3 @@ int main(int argc, char *argv[]) {
 //*****************************************************************************
     return 0;
 }
-

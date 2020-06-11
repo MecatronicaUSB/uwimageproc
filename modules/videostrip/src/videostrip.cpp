@@ -63,19 +63,18 @@ float calcBlurGPU(Mat frame) {
 float calcOverlapGPU(keyframe* kframe, Mat img_object) {
 	// if any of the input images are empty, then exits with error code
     if (! img_object.data || ! kframe->res_img.data) {
-        cout << " --(!) Error reading images " << std::endl;
+        cout << "calcOverlapGPU: Error reading image data" << std::endl;
         return - 1;
     }
     //-- Step 1: Detect the keypoints using SURF Detector
-    int minHessian = 400;
     // Convert to grayscale
     cvtColor(img_object, img_object, COLOR_BGR2GRAY);
 
     vector<KeyPoint> keypoints_object, keypoints_scene;
-
     cuda::GpuMat gpu_img_objectGPU, gpu_img_sceneGPU;
     cuda::GpuMat keypoints_objectGPU, keypoints_sceneGPU;
     cuda::GpuMat descriptors_objectGPU, descriptors_sceneGPU;
+    
     // Upload to GPU
     gpu_img_objectGPU.upload(img_object);
     // Detect keypoints
@@ -115,9 +114,9 @@ float calcOverlapGPU(keyframe* kframe, Mat img_object) {
     for (int k = 0; k < std::min(keypoints_scene.size() - 1, matches.size()); k ++) {
         if ((matches[k][0].distance < 0.8 * (matches[k][1].distance)) &&
             ((int) matches[k].size() <= 2 && (int) matches[k].size() > 0)) {
-            // take the first result only if its distance is smaller than 0.6*second_best_dist
-            // that means this descriptor is ignored if the second distance is bigger or of similar
-            good_matches.push_back(matches[k][0]);
+            // take the first result only if its distance is smaller than 0.8*second_best_dist
+            // that means this descriptor is ignored if the second distance is bigger or similar
+            good_matches.push_back(matches[k][0]);  //push into the good_matches list
         }
     }
  
@@ -130,8 +129,8 @@ float calcOverlapGPU(keyframe* kframe, Mat img_object) {
     //***************************************************************//
     //we must check if found H matrix is good enough. It requires at least 4 points
     if (good_matches.size() < 4) {
-        cout << "[WARN] Not enough good matches!" << endl;
-        //we fail to estimate new overlap
+        cout << "[calcOverlapGPU] Not enough good matches!" << endl;
+        //we fail to estimate new overlap, return a non-valid overlap value to signal termination
         return -2.0;
     }
     else {
@@ -186,8 +185,7 @@ float calcBlur(Mat frame) {
 
 /*! @fn float calcOverlap(Mat img_scene, Mat img_object)
     @brief Calculates the percentage of overlapping among two frames, by estimating the Homography matrix.
-    @param
-            img_scene	Mat OpenCV matrix container of reference frame
+    @param img_scene	Mat OpenCV matrix container of reference frame
     @param img_object	Mat OpenCV matrix container of target frame
 	@brief retval		The normalized overlap among two given frame
 */
@@ -289,7 +287,7 @@ float calcOverlap(keyframe* kframe, Mat img_object) {
         return minOverlap;
     }
 }
-
+// TODO: IMPROVE OVERLAP AREA WHEN ASPECT RATIO IS NOT THE SAME
 float overlapArea(Mat H){
     vector<Point2f> points, final_points;
     float area_percent, area_currOverlap, area_img1, area_img2;
