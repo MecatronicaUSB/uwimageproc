@@ -18,6 +18,7 @@
 
 #include "../include/videostrip.hpp"
 #include "../include/options.h"
+#include <ctime>
 
 // #cmakedefine USE_GPU
 
@@ -192,34 +193,37 @@ int main(int argc, char *argv[]) {
         cout << "Exiting... use non-GPU version instead" << endl;
     }
 #endif
-    #if USE_GPU
-        CUDA = cvParser.get<int>("cuda");	        // gets argument -cuda=x, where 'x' define to use CUDA or not
-        nCuda = cuda::getCudaEnabledDeviceCount();	// Try to detect any existing CUDA device
-        // Deactivate CUDA from parse
-        if (CUDA == 0){            
-            cout << yellow << "CUDA deactivated" << reset << endl;
-            cout << "Exiting... use non-GPU version instead" << endl;
-        }
-        // Find CUDA devices
-        else if (nCuda > 0){   
-            cuda::DeviceInfo deviceInfo;
-            cout << "CUDA enabled devices detected: " << deviceInfo.name() << endl;
-            cuda::setDevice(0);
-        }
-        else {
-            CUDA = 0;
-            cout << "No CUDA device detected" << endl;
-            cout << "Exiting... use non-GPU version instead" << endl;
-        }
-    #endif
+#if USE_GPU
+    CUDA = cvParser.get<int>("cuda");	        // gets argument -cuda=x, where 'x' define to use CUDA or not
+    nCuda = cuda::getCudaEnabledDeviceCount();	// Try to detect any existing CUDA device
+    // Deactivate CUDA from parse
+    if (CUDA == 0){            
+        cout << yellow << "CUDA deactivated" << reset << endl;
+        cout << "Exiting... use non-GPU version instead" << endl;
+    }
+    // Find CUDA devices
+    else if (nCuda > 0){   
+        cuda::DeviceInfo deviceInfo;
+        cout << "CUDA enabled devices detected: " << deviceInfo.name() << endl;
+        cuda::setDevice(0);
+    }
+    else {
+        CUDA = 0;
+        cout << "No CUDA device detected" << endl;
+        cout << "Exiting... use non-GPU version instead" << endl;
+    }
+#endif
     // TODO: How to operate when multiple CUDA devices are detected?
     // So far, we work with the first detected CUDA device. Maybe, add some CUDA probe mode when called
 
     cout << "***************************************" << endl;
     cout << "Input: " << InputFile << endl;
 
+    time_t now = time(0);
+    char* dt = ctime(&now);
     reportFile << "***************************************" << endl;
-    reportFile << "Input: " << InputFile << endl;
+    reportFile << "Input:\t" << InputFile << endl;
+    reportFile << "Local time:\t" << dt << endl;  
     //**************************************************************************
     /* VIDEO INPUT */
 
@@ -290,7 +294,7 @@ int main(int argc, char *argv[]) {
     OutputFileName << OutputFile << setfill('0') << setw(4) << out_frame << ".jpg";
     imwrite(OutputFileName.str(), kframe.img);
 //    reportFile << "ID\tFrame\tFilename\tOverlap\tBlur" << endl;
-    reportFile << "0\t0\t" << OutputFileName.str() << "\t" << "1.0\t1.0" << endl;
+    reportFile << "0\t0\t" << OutputFileName.str() << "\t" << "0.0\t0.0" << endl;
 
     // exits when pressed 'ESC' or 'q'
     while (keyboard != 'q' && keyboard != 27) {
@@ -305,12 +309,10 @@ int main(int argc, char *argv[]) {
 
         float bestBlur = 0.0, currBlur;    //we start using the current frame blur as best blur value
         resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);
-        #if USE_GPU
-        if(CUDA)
-            currOverlap = calcOverlapGPU(&kframe, res_frame);
-        #endif
-        if(not CUDA)
-            currOverlap = calcOverlap(&kframe, res_frame);
+    #if USE_GPU
+        if(CUDA) currOverlap = calcOverlapGPU(&kframe, res_frame);
+    #endif
+        if(not CUDA) currOverlap = calcOverlap(&kframe, res_frame);
 
         cout << '\r' << yellow << "Frame: " << reset << (read_frame - 1) << "\tOverlap: " << currOverlap << std::flush;
 
@@ -330,12 +332,10 @@ int main(int argc, char *argv[]) {
             Start to search best frames in i+k frames, according to "blur level" estimator (based on Laplacian variance)
             We start using current frame as best frame so far
             */
-            #if USE_GPU
-            if(CUDA)
-                bestBlur = calcBlurGPU(res_frame);
-            #endif
-            if(not CUDA)
-                bestBlur = calcBlur(res_frame);
+        #if USE_GPU
+            if(CUDA) bestBlur = calcBlurGPU(res_frame);
+        #endif
+            if(not CUDA) bestBlur = calcBlur(res_frame);
 
             int best_frame_number = capture.get(CAP_PROP_POS_FRAMES) - 1;
             bestframe = frame.clone();	// we copy this new frame as the best frame
@@ -352,12 +352,10 @@ int main(int argc, char *argv[]) {
                 resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);    //uses a resized version
 
                 //we operate over the resampled image for speed purposes
-                #if USE_GPU
-                if(CUDA)
-                    currBlur = calcBlurGPU(res_frame);
-                #endif
-                if(not CUDA)
-                    currBlur = calcBlur(res_frame);    
+            #if USE_GPU
+                if(CUDA) currBlur = calcBlurGPU(res_frame);
+            #endif
+                if(not CUDA) currBlur = calcBlur(res_frame);    
 
                 cout << '\r' << "Refining search [" << n+1 << "/" << kWindow << "]\tBlur: " << currBlur << "\tBest: " << bestBlur << std::flush;
                 if (currBlur > bestBlur) {    //if current blur is better, replaces best frame
@@ -382,11 +380,11 @@ int main(int argc, char *argv[]) {
             cout << endl << green << "Exported frame: " << reset << best_frame_number << " [" << out_frame << "]" << endl;
 		    reportFile << out_frame << "\t" << best_frame_number << "\t" << OutputFileName.str() <<"\t" << currOverlap << "\t" << bestBlur << endl;
 
-#ifdef _VERBOSE_ON_
-            t = 1000 * ((double) getTickCount() - t) / getTickFrequency();
-            cout << endl << "BestBlur: " << t << " ms" << endl;
-            t = (double) getTickCount();
-#endif
+            #ifdef _VERBOSE_ON_
+                t = 1000 * ((double) getTickCount() - t) / getTickFrequency();
+                cout << endl << "BestBlur: " << t << " ms" << endl;
+                t = (double) getTickCount();
+            #endif
             resize(kframe.img, kframe.res_img, cv::Size(), hResizeFactor, hResizeFactor);
 			cout << "*************" << endl;
         }
