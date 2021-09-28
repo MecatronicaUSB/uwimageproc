@@ -22,6 +22,7 @@ args::ValueFlag	<double> 	argOverlap(argParser, "overlap", "Desired maximum over
 args::Positional<std::string> 	argInput(argParser, "input", "Input file name");
 args::Positional<std::string> 	argOutput(argParser, "output", "Prefix for output JPG image files");
 args::ValueFlag <bool>		argReport(argParser, "report", "Generate report file containing detailed information for each exported frame", {'r', "--report"});
+args::ValueFlag <bool>		argFeatures(argParser, "features", "Export features in PTO compatible format", {'f', "--features"});
 
 #endif
 

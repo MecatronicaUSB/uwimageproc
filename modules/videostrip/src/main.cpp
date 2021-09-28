@@ -114,6 +114,9 @@ int main(int argc, char *argv[]) {
     String OutputFile = args::get(argOutput);	//String containing the output file template from cvParser function
     ostringstream OutputFileName;				// output string that will contain the desired output file name
 
+    ofstream featuresFile;
+    String featuresFileName = OutputFile + "exported_features.pto";
+    featuresFile.open(featuresFileName, std::ofstream::out);
 	/*
 	 *	Generate report file
 	 */
@@ -158,6 +161,10 @@ int main(int argc, char *argv[]) {
     else
         cout << "[reportFlag] no report will be generated " << minOverlap << endl;
 
+    if (argFeatures)
+        cout << "[exportFeatures] detected features will be exported to PTO compatible format: " << featuresFileName << endl;
+    else
+        cout << "[exportFeatures] features won't be exported" << endl;
     //************************************************************************
     /* FILENAME */
     //gets the path of the input source
@@ -309,9 +316,9 @@ int main(int argc, char *argv[]) {
 
         float bestBlur = 0.0, currBlur;    //we start using the current frame blur as best blur value
         resize(frame, res_frame, cv::Size(), hResizeFactor, hResizeFactor);
-    #if USE_GPU
+        #if USE_GPU
         if(CUDA) currOverlap = calcOverlapGPU(&kframe, res_frame);
-    #endif
+        #endif
         if(not CUDA) currOverlap = calcOverlap(&kframe, res_frame);
 
         cout << '\r' << yellow << "Frame: " << reset << (read_frame - 1) << "\tOverlap: " << currOverlap << std::flush;

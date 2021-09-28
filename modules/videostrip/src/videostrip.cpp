@@ -93,12 +93,11 @@ float calcOverlapGPU(keyframe* kframe, Mat img_object) {
     keypoints_scene = kframe->keypoints;
     descriptors_sceneGPU = auxD;
  
-
-#ifdef _VERBOSE_ON_
+    #ifdef _VERBOSE_ON_
     t = 1000 * ((double) getTickCount() - t) / getTickFrequency();
     cout << endl << "SURF@GPU: " << t << " ms ";
     t = (double) getTickCount();
-#endif
+    #endif
 
     //***************************************************************//
     //-- Step 3: Matching descriptor vectors using GPU BruteForce matcher (instead CPU FLANN)
@@ -120,11 +119,11 @@ float calcOverlapGPU(keyframe* kframe, Mat img_object) {
         }
     }
  
-#ifdef _VERBOSE_ON_
+    #ifdef _VERBOSE_ON_
     t = 1000 * ((double) getTickCount() - t) / getTickFrequency();
     cout << "\t | BFMatcher GPU: " << t << " ms ";
     t = (double) getTickCount();
-#endif
+    #endif
 
     //***************************************************************//
     //we must check if found H matrix is good enough. It requires at least 4 points
@@ -157,11 +156,11 @@ float calcOverlapGPU(keyframe* kframe, Mat img_object) {
         
         float overlap = overlapArea(H)/ (videoWidth * videoHeight);
 
-#ifdef _VERBOSE_ON_
+        #ifdef _VERBOSE_ON_
         t = 1000 * ((double) getTickCount() - t) / getTickFrequency();
         cout << "\t | Homography: " << t << " ms" << endl;
         t = (double) getTickCount();
-#endif
+        #endif
         return overlap;
     }
 }
