@@ -8,7 +8,7 @@ project(video_strip_project)
 # to the absolute path to the directory containing OpenCVConfig.cmake file
 # via the command line or GUI
 
-find_package(OpenCV 3.2 REQUIRED
+find_package(OpenCV 4 REQUIRED
 NO_MODULE
 PATHS /usr/local
 NO_DEFAULT_PATH)
